@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: pos-licoreria
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/pos_licoreria?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Tegucigalpa&characterEncoding=UTF-8
+    username: root
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: America/Tegucigalpa
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/Tegucigalpa
+
+server:
+  port: 8080
+
+pos:
+  normativa:
+    edad-minima-alcohol: 18
+    horario-habilitado: true
+  impuesto:
+    tasa-isv: 0.15
+  mayorista:
+    volumen-minimo-umm: 6
+  jwt:
+    secret: ${JWT_SECRET:cambiar-esta-clave-en-produccion-pos-licoreria-2026}
+    expiration-ms: 28800000
+    max-intentos-login: 5
+    bloqueo-minutos: 15
+
+logging:
+  level:
+    com.licoreria.pos: DEBUG
+    org.springframework.security: INFO

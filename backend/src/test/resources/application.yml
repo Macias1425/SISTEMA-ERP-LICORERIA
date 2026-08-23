@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:pos_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+pos:
+  normativa:
+    edad-minima-alcohol: 18
+    horario-habilitado: true
+  impuesto:
+    tasa-isv: 0.15
+  mayorista:
+    volumen-minimo-umm: 6
+  jwt:
+    secret: test-secret-pos-licoreria-examen-grado-2026
+    expiration-ms: 3600000
+
+server:
+  port: 0

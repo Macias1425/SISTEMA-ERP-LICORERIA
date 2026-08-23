@@ -1,0 +1,84 @@
+package com.licoreria.pos.model;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "productos")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Producto {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 64)
+    private String codigo;
+
+    @Column(nullable = false, length = 150)
+    private String nombre;
+
+    @Column(length = 80)
+    private String marca;
+
+    @Column(name = "categoria_id")
+    private Long categoriaId;
+
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private String unidadMinima = "BOTELLA";
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal precioCompra;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal precioVenta;
+
+    /** Existencia física siempre en unidad mínima (UMM). Nunca por caja o six-pack. */
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer stockActual = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer stockMinimo = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer stockCritico = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean esAlcoholico = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
+    @Version
+    private Long version;
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Presentacion> presentaciones = new ArrayList<>();
+}
