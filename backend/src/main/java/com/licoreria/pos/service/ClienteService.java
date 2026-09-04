@@ -1,10 +1,12 @@
 package com.licoreria.pos.service;
 
 import com.licoreria.pos.dto.ClienteDTO;
+import com.licoreria.pos.dto.PaginaDTO;
 import com.licoreria.pos.exception.RecursoNoEncontradoException;
 import com.licoreria.pos.model.Cliente;
 import com.licoreria.pos.model.TipoCliente;
 import com.licoreria.pos.repository.ClienteRepository;
+import com.licoreria.pos.util.PaginacionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +20,16 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
 
     @Transactional(readOnly = true)
+    public PaginaDTO<ClienteDTO> listar(String busqueda, Boolean activo, int pagina, int tamano) {
+        String termino = busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
+        return PaginaDTO.de(clienteRepository.buscarPaginado(
+                termino, activo, PaginacionUtil.pageable(pagina, tamano)
+        ).map(this::toDto));
+    }
+
+    @Transactional(readOnly = true)
     public List<ClienteDTO> listar() {
-        return clienteRepository.findAll().stream().map(this::toDto).toList();
+        return listar(null, true, 0, PaginacionUtil.TAMANO_MAX).getContenido();
     }
 
     @Transactional(readOnly = true)
@@ -31,7 +41,7 @@ public class ClienteService {
     public ClienteDTO crear(ClienteDTO dto) {
         Cliente cliente = Cliente.builder()
                 .nombre(dto.getNombre())
-                .rtn(dto.getRtn())
+                .ruc(dto.getRuc())
                 .telefono(dto.getTelefono())
                 .direccion(dto.getDireccion())
                 .tipoCliente(dto.getTipoCliente() == null ? TipoCliente.DETAL : dto.getTipoCliente())
@@ -44,7 +54,7 @@ public class ClienteService {
     public ClienteDTO actualizar(Long id, ClienteDTO dto) {
         Cliente cliente = buscar(id);
         cliente.setNombre(dto.getNombre());
-        cliente.setRtn(dto.getRtn());
+        cliente.setRuc(dto.getRuc());
         cliente.setTelefono(dto.getTelefono());
         cliente.setDireccion(dto.getDireccion());
         if (dto.getTipoCliente() != null) {
@@ -65,7 +75,7 @@ public class ClienteService {
         return ClienteDTO.builder()
                 .id(cliente.getId())
                 .nombre(cliente.getNombre())
-                .rtn(cliente.getRtn())
+                .ruc(cliente.getRuc())
                 .telefono(cliente.getTelefono())
                 .direccion(cliente.getDireccion())
                 .tipoCliente(cliente.getTipoCliente())

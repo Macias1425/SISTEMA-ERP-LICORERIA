@@ -4,6 +4,7 @@ import com.licoreria.pos.config.PosProperties;
 import com.licoreria.pos.dto.DetalleVentaDTO;
 import com.licoreria.pos.dto.DetalleVentaResponseDTO;
 import com.licoreria.pos.dto.FacturaDTO;
+import com.licoreria.pos.dto.PaginaDTO;
 import com.licoreria.pos.dto.VentaRequestDTO;
 import com.licoreria.pos.dto.VentaResponseDTO;
 import com.licoreria.pos.exception.RecursoNoEncontradoException;
@@ -13,6 +14,7 @@ import com.licoreria.pos.model.Cliente;
 import com.licoreria.pos.model.DetalleVenta;
 import com.licoreria.pos.model.EstadoVenta;
 import com.licoreria.pos.model.FormaPago;
+import com.licoreria.pos.model.Permiso;
 import com.licoreria.pos.model.Presentacion;
 import com.licoreria.pos.model.Producto;
 import com.licoreria.pos.model.TipoCliente;
@@ -22,18 +24,25 @@ import com.licoreria.pos.model.Usuario;
 import com.licoreria.pos.model.Venta;
 import com.licoreria.pos.model.Rol;
 import com.licoreria.pos.repository.ProductoRepository;
+import com.licoreria.pos.repository.UsuarioRepository;
 import com.licoreria.pos.repository.VentaRepository;
+import com.licoreria.pos.util.PaginacionUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -44,6 +53,7 @@ public class VentaService {
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final ClienteService clienteService;
     private final InventarioService inventarioService;
     private final ConversionUnidades conversionUnidades;
@@ -54,14 +64,36 @@ public class VentaService {
     private final CajaService cajaService;
     private final AuditoriaService auditoriaService;
     private final AutorizacionService autorizacionService;
+    private final AccesoService accesoService;
     private final PosProperties posProperties;
     private final Clock clock;
 
+    @Lazy
+    @Autowired
+    private ControlVentasService controlVentasService;
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<VentaResponseDTO> listar(int pagina, int tamano) {
+        return PaginaDTO.de(ventaRepository.findAllByOrderByFechaDesc(PaginacionUtil.pageable(pagina, tamano))
+                .map(venta -> toResponse(venta, facturaService.buscarPorVenta(venta.getId()).orElse(null))));
+    }
+
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listar() {
-        return ventaRepository.findAll().stream()
-                .map(venta -> toResponse(venta, facturaService.buscarPorVenta(venta.getId()).orElse(null)))
-                .toList();
+        return listar(0, PaginacionUtil.TAMANO_MAX).getContenido();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<VentaResponseDTO> listarPorTurno(Long turnoId, int pagina, int tamano) {
+        accesoService.exigirAlguno(Permiso.FACTURAS_VER, Permiso.VENTAS_CREAR);
+        return PaginaDTO.de(ventaRepository.findByTurnoCajaIdOrderByFechaDesc(
+                turnoId, PaginacionUtil.pageable(pagina, tamano)
+        ).map(venta -> toResponse(venta, facturaService.buscarPorVenta(venta.getId()).orElse(null))));
+    }
+
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> listarPorTurno(Long turnoId) {
+        return listarPorTurno(turnoId, 0, PaginacionUtil.TAMANO_MAX).getContenido();
     }
 
     @Transactional(readOnly = true)
@@ -73,9 +105,15 @@ public class VentaService {
 
     @Transactional
     public VentaResponseDTO registrar(VentaRequestDTO request) {
-        Usuario cajero = autorizacionService.exigirRol(Rol.CAJERO, Rol.ADMIN);
+        Usuario cajero = accesoService.exigirPermiso(Permiso.VENTAS_CREAR);
         var turno = cajaService.exigirTurnoAbierto(cajero.getId());
+        controlVentasService.validarLimiteTurno(turno.getId());
         FormaPago formaPago = request.getFormaPago() == null ? FormaPago.EFECTIVO : request.getFormaPago();
+        String claveIdempotencia = normalizarClave(request.getClaveIdempotencia());
+        VentaResponseDTO repetida = ventaIdempotente(cajero, claveIdempotencia);
+        if (repetida != null) {
+            return repetida;
+        }
 
         Cliente cliente = request.getClienteId() == null ? null : clienteService.buscar(request.getClienteId());
         TipoCliente tipoSolicitado = request.getTipoCliente() != null
@@ -83,6 +121,7 @@ public class VentaService {
                 : (cliente != null ? cliente.getTipoCliente() : TipoCliente.DETAL);
 
         List<LineaPreparada> lineas = prepararLineas(request.getDetalles());
+        exigirStockTicket(lineas);
         boolean hayAlcohol = lineas.stream().anyMatch(linea -> Boolean.TRUE.equals(linea.producto.getEsAlcoholico()));
         int ummTicket = lineas.stream().mapToInt(linea -> linea.cantidadUmm).sum();
 
@@ -109,27 +148,28 @@ public class VentaService {
             ListaPrecioService.PrecioResuelto precio = listaPrecioService.resolverPrecio(
                     linea.producto, tipoAplicado, linea.cantidadUmm);
 
-            BigDecimal precioUmmCatalogo = precio.getPrecioUmm().setScale(2, REDONDEO);
-            BigDecimal factor = BigDecimal.valueOf(linea.presentacion.getFactorAUnidadMinima());
-            BigDecimal precioPresentacion = precioUmmCatalogo.multiply(factor).setScale(2, REDONDEO);
+            BigDecimal precioUmmCatalogo = TarifaVenta.dinero(precio.getPrecioUmm());
+            int factor = linea.presentacion.getFactorAUnidadMinima();
+            BigDecimal precioPresentacion = TarifaVenta.precioPresentacion(precioUmmCatalogo, factor);
 
             if (dto.getPrecioUnitario() != null && dto.getPrecioUnitario().compareTo(precioPresentacion) != 0) {
+                // RN-POS-05: cambio de precio en venta exige credencial de administrador con permiso explícito.
                 Usuario supervisor = autorizacionService.exigirCredencialAdmin(
                         request.getAutorizacionSupervisor(),
                         "El cajero no puede alterar el precio del catálogo. Se requiere usuario y clave de un administrador"
                 );
+                accesoService.exigirPermisoDe(supervisor, Permiso.VENTAS_OVERRIDE_PRECIO,
+                        "El administrador autorizante no tiene permiso para cambiar precios en venta");
                 autorizadoPrecioPor = supervisor.getId();
-                precioPresentacion = dto.getPrecioUnitario().setScale(2, REDONDEO);
-                precioUmmCatalogo = precioPresentacion.divide(factor, 4, REDONDEO);
+                precioPresentacion = TarifaVenta.dinero(dto.getPrecioUnitario());
+                precioUmmCatalogo = TarifaVenta.precioUmmDesdePresentacion(precioPresentacion, factor);
                 observacion = append(observacion, "Precio autorizado por supervisor id " + supervisor.getId());
                 auditoriaService.registrar(supervisor, AccionAuditoria.CAMBIO_PRECIO, "Producto", linea.producto.getId(),
                         precioUmmCatalogo.toPlainString(), dto.getPrecioUnitario().toPlainString(),
                         "Override en venta");
             }
 
-            BigDecimal subtotalLinea = precioPresentacion
-                    .multiply(BigDecimal.valueOf(linea.cantidadPresentacion))
-                    .setScale(2, REDONDEO);
+            BigDecimal subtotalLinea = TarifaVenta.subtotalLinea(precioPresentacion, linea.cantidadPresentacion);
             subtotal = subtotal.add(subtotalLinea);
 
             detalles.add(DetalleVenta.builder()
@@ -143,9 +183,25 @@ public class VentaService {
                     .build());
         }
 
-        BigDecimal tasa = posProperties.getImpuesto().getTasaIsv();
-        BigDecimal impuesto = subtotal.multiply(tasa).setScale(2, REDONDEO);
-        BigDecimal total = subtotal.add(impuesto);
+        BigDecimal tasa = posProperties.getImpuesto().getTasaIva();
+        BigDecimal impuesto = TarifaVenta.impuesto(subtotal, tasa);
+        BigDecimal total = TarifaVenta.dinero(subtotal.add(impuesto));
+
+        var reglasControl = controlVentasService.reglasOperativas();
+        if (reglasControl.getMontoSupervisorRequerido() != null
+                && total.compareTo(reglasControl.getMontoSupervisorRequerido()) >= 0
+                && cajero.getRol() != Rol.ADMIN) {
+            autorizacionService.exigirCredencialAdmin(
+                    request.getAutorizacionSupervisor(),
+                    "Las ventas iguales o superiores a C$ "
+                            + reglasControl.getMontoSupervisorRequerido()
+                            + " requieren autorización de un administrador"
+            );
+            observacion = append(observacion, "Venta alto monto autorizada por supervisor");
+        }
+
+        BigDecimal vuelto = CobroPos.vuelto(formaPago, request.getMontoRecibido(), total);
+        BigDecimal montoRecibido = CobroPos.montoRegistrado(formaPago, request.getMontoRecibido(), total);
         LocalDateTime ahora = LocalDateTime.now(clock);
 
         Venta venta = Venta.builder()
@@ -165,6 +221,9 @@ public class VentaService {
                 .observacion(observacion)
                 .turnoCajaId(turno.getId())
                 .formaPago(formaPago)
+                .montoRecibido(montoRecibido)
+                .vuelto(vuelto)
+                .claveIdempotencia(claveIdempotencia)
                 .estado(EstadoVenta.COMPLETADA)
                 .build();
 
@@ -182,7 +241,10 @@ public class VentaService {
                     detalle.getCantidad(),
                     TipoMovimiento.VENTA,
                     "Venta " + guardada.getNumero(),
-                    cajero.getId()
+                    cajero.getId(),
+                    null,
+                    guardada.getId(),
+                    null
             );
         }
 
@@ -200,11 +262,52 @@ public class VentaService {
             if (!Boolean.TRUE.equals(producto.getActivo())) {
                 throw new ReglaNegocioException("PRODUCTO_INACTIVO", "El producto no está activo: " + producto.getNombre());
             }
+            LocalDate hoy = LocalDate.now(clock);
+            if (producto.getFechaVencimiento() != null && producto.getFechaVencimiento().isBefore(hoy)) {
+                throw new ReglaNegocioException(
+                        "PRODUCTO_VENCIDO",
+                        "No se puede vender '" + producto.getNombre() + "': venció el " + producto.getFechaVencimiento()
+                );
+            }
             Presentacion presentacion = inventarioService.obtenerPresentacion(producto.getId(), dto.getPresentacionId());
             int cantidadUmm = conversionUnidades.aUnidadMinima(presentacion, dto.getCantidad());
             lineas.add(new LineaPreparada(producto, presentacion, dto.getCantidad(), cantidadUmm));
         }
         return lineas;
+    }
+
+    private void exigirStockTicket(List<LineaPreparada> lineas) {
+        Map<Long, Integer> demanda = new LinkedHashMap<>();
+        for (LineaPreparada linea : lineas) {
+            demanda.merge(linea.producto.getId(), linea.cantidadUmm, Integer::sum);
+        }
+        for (Map.Entry<Long, Integer> entrada : demanda.entrySet()) {
+            inventarioService.exigirStockDisponible(entrada.getKey(), entrada.getValue());
+        }
+    }
+
+    private VentaResponseDTO ventaIdempotente(Usuario cajero, String clave) {
+        if (clave == null) {
+            return null;
+        }
+        return ventaRepository.findByClaveIdempotencia(clave)
+                .map(venta -> {
+                    if (!cajero.getId().equals(venta.getUsuarioId())) {
+                        throw new ReglaNegocioException(
+                                "IDEMPOTENCIA_AJENA",
+                                "Esa clave de cobro ya fue usada por otro cajero"
+                        );
+                    }
+                    return toResponse(venta, facturaService.buscarPorVenta(venta.getId()).orElse(null));
+                })
+                .orElse(null);
+    }
+
+    private String normalizarClave(String clave) {
+        if (clave == null || clave.isBlank()) {
+            return null;
+        }
+        return clave.trim();
     }
 
     private String siguienteNumero(String prefijo) {
@@ -224,7 +327,9 @@ public class VentaService {
                 .id(venta.getId())
                 .numero(venta.getNumero())
                 .clienteId(venta.getClienteId())
+                .clienteNombre(nombreCliente(venta.getClienteId()))
                 .usuarioId(venta.getUsuarioId())
+                .cajeroNombre(nombreUsuario(venta.getUsuarioId()))
                 .tipoClienteSolicitado(venta.getTipoClienteSolicitado())
                 .tipoClienteAplicado(venta.getTipoClienteAplicado())
                 .fecha(venta.getFecha())
@@ -238,6 +343,8 @@ public class VentaService {
                 .observacion(venta.getObservacion())
                 .turnoCajaId(venta.getTurnoCajaId())
                 .formaPago(venta.getFormaPago())
+                .montoRecibido(venta.getMontoRecibido())
+                .vuelto(venta.getVuelto())
                 .estado(venta.getEstado())
                 .factura(factura)
                 .detalles(venta.getDetalles().stream().map(this::toDetalleResponse).toList())
@@ -247,13 +354,47 @@ public class VentaService {
     private DetalleVentaResponseDTO toDetalleResponse(DetalleVenta detalle) {
         return DetalleVentaResponseDTO.builder()
                 .productoId(detalle.getProductoId())
+                .productoNombre(nombreProducto(detalle.getProductoId()))
                 .presentacionId(detalle.getPresentacionId())
+                .presentacionNombre(nombrePresentacion(detalle.getProductoId(), detalle.getPresentacionId()))
                 .cantidad(detalle.getCantidad())
                 .cantidadUmm(detalle.getCantidadUmm())
                 .precioUnitarioUmm(detalle.getPrecioUnitarioUmm())
                 .precioUnitario(detalle.getPrecioUnitario())
                 .subtotal(detalle.getSubtotal())
                 .build();
+    }
+
+    private String nombreProducto(Long productoId) {
+        return productoRepository.findById(productoId).map(Producto::getNombre).orElse(null);
+    }
+
+    private String nombrePresentacion(Long productoId, Long presentacionId) {
+        try {
+            return inventarioService.obtenerPresentacion(productoId, presentacionId).getNombre();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private String nombreCliente(Long clienteId) {
+        if (clienteId == null) {
+            return "Consumidor final";
+        }
+        try {
+            return clienteService.buscar(clienteId).getNombre();
+        } catch (RecursoNoEncontradoException ignored) {
+            return null;
+        }
+    }
+
+    private String nombreUsuario(Long usuarioId) {
+        if (usuarioId == null) {
+            return null;
+        }
+        return usuarioRepository.findById(usuarioId)
+                .map(Usuario::getNombreCompleto)
+                .orElse(null);
     }
 
     private record LineaPreparada(Producto producto, Presentacion presentacion, int cantidadPresentacion, int cantidadUmm) {

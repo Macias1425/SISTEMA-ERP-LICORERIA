@@ -1,6 +1,7 @@
 package com.licoreria.pos.exception;
 
 import com.licoreria.pos.dto.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -8,12 +9,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -64,8 +67,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "DATOS_INVALIDOS", ex.getMessage(), null);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRutaInexistente(NoResourceFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "RUTA_NO_ENCONTRADA",
+                "Esta función no está cargada. Reinicia el backend para aplicar los cambios", null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        log.error("Error no controlado", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR_INTERNO", "Ocurrió un error interno", null);
     }
 

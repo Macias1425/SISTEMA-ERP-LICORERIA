@@ -31,7 +31,10 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtAuthenticationFilter jwtFilter,
+                                                   CambioPasswordObligatorioFilter cambioPasswordFilter,
+                                                   HorarioAccesoFilter horarioAccesoFilter,
                                                    ObjectMapper objectMapper) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -44,8 +47,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/**").authenticated()
-                        .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auditoria/**").hasRole("ADMIN")
+                        // La autorización por módulo se declara con permisos en cada controlador
+                        // (@PreAuthorize("@acceso.tiene(...)")). Filtrar por rol aquí anulaba
+                        // los permisos adicionales concedidos a un usuario.
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll()
                 )
@@ -56,7 +60,9 @@ public class SecurityConfig {
                                 escribir(response, objectMapper, HttpStatus.FORBIDDEN, "ACCESO_DENEGADO",
                                         "No tiene permiso para esta operación"))
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(cambioPasswordFilter, JwtAuthenticationFilter.class)
+                .addFilterAfter(horarioAccesoFilter, CambioPasswordObligatorioFilter.class);
 
         return http.build();
     }
@@ -75,9 +81,28 @@ public class SecurityConfig {
     }
 
     @Bean
+    public FilterRegistrationBean<CambioPasswordObligatorioFilter> cambioPasswordFilterRegistration(
+            CambioPasswordObligatorioFilter filter) {
+        FilterRegistrationBean<CambioPasswordObligatorioFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<HorarioAccesoFilter> horarioAccesoFilterRegistration(
+            HorarioAccesoFilter filter) {
+        FilterRegistrationBean<HorarioAccesoFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

@@ -14,7 +14,19 @@ public class PosProperties {
     private Normativa normativa = new Normativa();
     private Impuesto impuesto = new Impuesto();
     private Mayorista mayorista = new Mayorista();
+    private Factura factura = new Factura();
     private Jwt jwt = new Jwt();
+    private Respaldo respaldo = new Respaldo();
+
+    @Getter
+    @Setter
+    public static class Respaldo {
+        private String directorio = "./backups";
+        private String mysqldumpPath = "mysqldump";
+        private String mysqlPath = "mysql";
+        private int maxRespaldos = 30;
+        private boolean permitirRestaurar = true;
+    }
 
     @Getter
     @Setter
@@ -26,13 +38,21 @@ public class PosProperties {
     @Getter
     @Setter
     public static class Impuesto {
-        private BigDecimal tasaIsv = new BigDecimal("0.15");
+        /** IVA general de Nicaragua: 15%. */
+        private BigDecimal tasaIva = new BigDecimal("0.15");
     }
 
     @Getter
     @Setter
     public static class Mayorista {
         private int volumenMinimoUmm = 6;
+    }
+
+    @Getter
+    @Setter
+    public static class Factura {
+        /** RN-FAC-06: solo se anula con el turno de caja aún abierto. */
+        private boolean requiereTurnoAbiertoParaAnular = true;
     }
 
     @Getter

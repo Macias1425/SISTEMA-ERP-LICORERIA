@@ -28,7 +28,7 @@ class HorarioVentaServiceTest {
     private HorarioVentaLicorRepository horarioRepository;
 
     private HorarioVentaService service;
-    private final ZoneId zona = ZoneId.of("America/Tegucigalpa");
+    private final ZoneId zona = ZoneId.of("America/Managua");
 
     @BeforeEach
     void setUp() {

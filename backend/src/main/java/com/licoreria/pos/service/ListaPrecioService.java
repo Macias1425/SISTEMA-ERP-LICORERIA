@@ -42,13 +42,16 @@ public class ListaPrecioService {
                         .productoId(dto.getProductoId())
                         .tipoCliente(dto.getTipoCliente())
                         .build());
+        BigDecimal precioAnterior = entidad.getPrecioUmm();
         entidad.setPrecioUmm(dto.getPrecioUmm());
         entidad.setVolumenMinimoUmm(dto.getVolumenMinimoUmm() == null ? 0 : dto.getVolumenMinimoUmm());
         ListaPrecio guardada = listaPrecioRepository.save(entidad);
-        auditoriaService.registrar((Long) null, null, AccionAuditoria.CAMBIO_PRECIO, "ListaPrecio",
-                guardada.getId(), null,
-                dto.getTipoCliente() + "=" + dto.getPrecioUmm(),
-                "Actualización de lista de precios");
+        if (precioAnterior == null || precioAnterior.compareTo(dto.getPrecioUmm()) != 0) {
+            auditoriaService.registrar(null, null, AccionAuditoria.CAMBIO_PRECIO, "Producto", dto.getProductoId(),
+                    precioAnterior == null ? null : dto.getTipoCliente() + "=" + precioAnterior,
+                    dto.getTipoCliente() + "=" + dto.getPrecioUmm(),
+                    "Lista de precios " + dto.getTipoCliente());
+        }
         return toDto(guardada);
     }
 

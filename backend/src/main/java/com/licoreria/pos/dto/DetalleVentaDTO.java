@@ -27,6 +27,6 @@ public class DetalleVentaDTO {
     @Min(value = 1, message = "La cantidad debe ser al menos 1")
     private Integer cantidad;
 
-    /** Si se envía y difiere del catálogo, exige supervisor (RN-FAC-03). */
+    /** Si se envía y difiere del catálogo, exige supervisor (RN-POS-05). */
     private BigDecimal precioUnitario;
 }

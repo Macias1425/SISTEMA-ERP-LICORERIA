@@ -9,8 +9,11 @@ import java.time.ZoneId;
 @Configuration
 public class ClockConfig {
 
+    /** Zona horaria de Nicaragua (UTC-6, sin horario de verano). */
+    public static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Managua");
+
     @Bean
     public Clock clock() {
-        return Clock.system(ZoneId.of("America/Tegucigalpa"));
+        return Clock.system(ZONA_NEGOCIO);
     }
 }

@@ -18,7 +18,7 @@ pos:
     edad-minima-alcohol: 18
     horario-habilitado: true
   impuesto:
-    tasa-isv: 0.15
+    tasa-iva: 0.15
   mayorista:
     volumen-minimo-umm: 6
   jwt:

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { mensajeError, useAuth } from '../../auth/AuthContext';
 import Button from '../../components/ui/Button';
+import Icon from '../../components/ui/Icon';
 
 export default function CambiarPasswordPage() {
   const { cambiarPassword, logout, debeCambiarPassword } = useAuth();
@@ -31,59 +32,79 @@ export default function CambiarPasswordPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <p className="auth-kicker">Seguridad</p>
-        <h1>Cambiar contraseña</h1>
-        <p className="auth-lead">
-          {debeCambiarPassword
-            ? 'Su clave es temporal. Debe cambiarla para continuar.'
-            : 'Ingrese la contraseña actual y la nueva.'}
-        </p>
+    <div className="pub-shell pub-login pub-login-single">
+      <div className="pub-bg" aria-hidden>
+        <span className="pub-orb pub-orb-a" />
+        <span className="pub-orb pub-orb-b" />
+        <span className="pub-grid" />
+      </div>
 
-        {error ? <p className="auth-error" role="alert">{error}</p> : null}
+      <main className="pub-login-panel pub-login-panel-full">
+        <form className="pub-login-card" onSubmit={onSubmit}>
+          <header className="pub-login-head">
+            <span className="pub-brand-mark pub-brand-mark-inline" aria-hidden>
+              <Icon name="wine" size={20} strokeWidth={1.75} />
+            </span>
+            <h1>Cambiar contraseña</h1>
+            <p>
+              {debeCambiarPassword
+                ? 'Su clave es temporal. Debe cambiarla para continuar.'
+                : 'Ingrese la contraseña actual y la nueva.'}
+            </p>
+          </header>
 
-        <label>
-          Contraseña actual
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={passwordActual}
-            onChange={(e) => setPasswordActual(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Nueva contraseña
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={passwordNueva}
-            onChange={(e) => setPasswordNueva(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        <label>
-          Confirmar nueva
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={confirmacion}
-            onChange={(e) => setConfirmacion(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        <p className="auth-hint">Mínimo 8 caracteres, con letras y números. No puede ser igual al usuario.</p>
+          {error ? <p className="pub-error" role="alert">{error}</p> : null}
 
-        <Button type="submit" disabled={enviando}>
-          {enviando ? 'Guardando…' : 'Guardar contraseña'}
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => { logout(); navigate('/login', { replace: true }); }}>
-          Cerrar sesión
-        </Button>
-      </form>
+          <label className="pub-field">
+            <span>Contraseña actual</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={passwordActual}
+              onChange={(e) => setPasswordActual(e.target.value)}
+              required
+            />
+          </label>
+          <label className="pub-field">
+            <span>Nueva contraseña</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordNueva}
+              onChange={(e) => setPasswordNueva(e.target.value)}
+              required
+              minLength={8}
+            />
+          </label>
+          <label className="pub-field">
+            <span>Confirmar nueva</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={confirmacion}
+              onChange={(e) => setConfirmacion(e.target.value)}
+              required
+              minLength={8}
+            />
+          </label>
+          <p className="pub-demo-hint">Mínimo 8 caracteres, con letras y números.</p>
+
+          <Button type="submit" disabled={enviando} className="pub-login-submit">
+            {enviando ? 'Guardando…' : 'Guardar contraseña'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="pub-login-secondary"
+            onClick={() => { logout(); navigate('/login', { replace: true }); }}
+          >
+            Cerrar sesión
+          </Button>
+          {!debeCambiarPassword ? (
+            <Link to="/dashboard" className="pub-back-link pub-back-link-center">← Volver al panel</Link>
+          ) : null}
+        </form>
+      </main>
     </div>
   );
 }

@@ -1,7 +1,5 @@
 package com.licoreria.pos.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.licoreria.pos.dto.ErrorResponse;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,8 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,15 +16,26 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 
+/**
+ * Capa de autenticación: si hay Bearer válido, deja el usuario en el contexto.
+ * No decide permisos ni reglas de negocio.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-    private final ObjectMapper objectMapper;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        if (path == null || path.isBlank() || "/".equals(path)) {
+            path = request.getRequestURI();
+        }
+        return path != null && path.endsWith("/api/auth/login");
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -49,13 +56,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                    if (userDetails instanceof UsuarioPrincipal principal
-                            && principal.isDebeCambiarPassword()
-                            && !permiteCambioPasswordPendiente(request)) {
-                        escribirDebeCambiarPassword(response);
-                        return;
-                    }
                 }
             }
         } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ignored) {
@@ -63,30 +63,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private boolean permiteCambioPasswordPendiente(HttpServletRequest request) {
-        return esRutaPermitida(request.getServletPath()) || esRutaPermitida(request.getRequestURI());
-    }
-
-    private boolean esRutaPermitida(String path) {
-        if (path == null || path.isBlank()) {
-            return false;
-        }
-        return "/api/auth/me".equals(path)
-                || "/api/auth/cambiar-password".equals(path)
-                || path.endsWith("/api/auth/me")
-                || path.endsWith("/api/auth/cambiar-password");
-    }
-
-    private void escribirDebeCambiarPassword(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.FORBIDDEN.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.FORBIDDEN.value())
-                .codigo("DEBE_CAMBIAR_PASSWORD")
-                .mensaje("Debe cambiar su contraseña temporal antes de continuar")
-                .build());
     }
 }

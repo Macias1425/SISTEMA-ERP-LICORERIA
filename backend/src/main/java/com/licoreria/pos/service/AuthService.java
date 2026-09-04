@@ -33,6 +33,8 @@ public class AuthService {
     private final LoginAttemptService loginAttemptService;
     private final PoliticaPassword politicaPassword;
     private final UsuarioActualService usuarioActualService;
+    private final PermisoService permisoService;
+    private final HorarioAccesoService horarioAccesoService;
     private final Clock clock;
 
     @Transactional
@@ -53,6 +55,14 @@ public class AuthService {
         }
 
         loginAttemptService.registrarExito(username);
+
+        if (!horarioAccesoService.accesoPermitidoAhora(usuario)) {
+            throw new AutenticacionException(
+                    "FUERA_DE_HORARIO_ACCESO",
+                    "Su cuenta no puede ingresar fuera del horario de acceso configurado"
+            );
+        }
+
         usuario.setUltimoAcceso(LocalDateTime.now(clock));
         usuarioRepository.save(usuario);
 
@@ -102,6 +112,14 @@ public class AuthService {
                 .debeCambiarPassword(usuario.getDebeCambiarPassword())
                 .ultimoAcceso(usuario.getUltimoAcceso())
                 .passwordActualizadaEn(usuario.getPasswordActualizadaEn())
+                .horarioAccesoHabilitado(usuario.getHorarioAccesoHabilitado())
+                .horarios(Boolean.TRUE.equals(usuario.getHorarioAccesoHabilitado())
+                        ? horarioAccesoService.listar(usuario.getId())
+                        : java.util.List.of())
+                .accesoPermitidoAhora(horarioAccesoService.accesoPermitidoAhora(usuario))
+                .permisosRol(permisoService.permisosBasePorRol(usuario.getRol()).stream().sorted().toList())
+                .permisosAdicionales(permisoService.permisosAdicionales(usuario.getId()))
+                .permisosEfectivos(permisoService.permisosEfectivosOrdenados(usuario))
                 .build();
     }
 }

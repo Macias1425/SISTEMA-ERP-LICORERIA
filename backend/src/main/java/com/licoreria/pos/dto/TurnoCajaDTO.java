@@ -19,6 +19,7 @@ public class TurnoCajaDTO {
 
     private Long id;
     private Long usuarioId;
+    private String usuarioNombre;
     private LocalDateTime fechaApertura;
     private BigDecimal montoInicial;
     private LocalDateTime fechaCierre;
@@ -29,4 +30,6 @@ public class TurnoCajaDTO {
     private String resultadoArqueo;
     private String observacionArqueo;
     private EstadoTurnoCaja estado;
+    private Integer cantidadVentas;
+    private BigDecimal totalVentas;
 }

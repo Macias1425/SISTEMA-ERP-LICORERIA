@@ -24,13 +24,13 @@ public class ListaPrecioController {
     private final ListaPrecioService listaPrecioService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('CAJERO','ADMIN','ALMACENISTA')")
+    @PreAuthorize("@acceso.tiene('PRODUCTOS_VER','VENTAS_CREAR','MARCAS_PRECIOS_GESTIONAR')")
     public ResponseEntity<List<ListaPrecioDTO>> listar(@RequestParam Long productoId) {
         return ResponseEntity.ok(listaPrecioService.listarPorProducto(productoId));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@acceso.tiene('MARCAS_PRECIOS_GESTIONAR')")
     public ResponseEntity<ListaPrecioDTO> guardar(@Valid @RequestBody ListaPrecioDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(listaPrecioService.guardar(dto));
     }

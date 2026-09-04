@@ -2,6 +2,8 @@ package com.licoreria.pos.service;
 
 import com.licoreria.pos.dto.AperturaCajaDTO;
 import com.licoreria.pos.dto.CierreCajaDTO;
+import com.licoreria.pos.dto.EstadoCajaDTO;
+import com.licoreria.pos.dto.PaginaDTO;
 import com.licoreria.pos.dto.TurnoCajaDTO;
 import com.licoreria.pos.exception.RecursoNoEncontradoException;
 import com.licoreria.pos.exception.ReglaNegocioException;
@@ -9,12 +11,15 @@ import com.licoreria.pos.model.AccionAuditoria;
 import com.licoreria.pos.model.EstadoTurnoCaja;
 import com.licoreria.pos.model.EstadoVenta;
 import com.licoreria.pos.model.FormaPago;
+import com.licoreria.pos.model.Permiso;
 import com.licoreria.pos.model.Rol;
 import com.licoreria.pos.model.TurnoCaja;
 import com.licoreria.pos.model.Usuario;
 import com.licoreria.pos.model.Venta;
 import com.licoreria.pos.repository.TurnoCajaRepository;
+import com.licoreria.pos.repository.UsuarioRepository;
 import com.licoreria.pos.repository.VentaRepository;
+import com.licoreria.pos.util.PaginacionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +38,15 @@ public class CajaService {
 
     private final TurnoCajaRepository turnoCajaRepository;
     private final VentaRepository ventaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacionService;
+    private final AccesoService accesoService;
     private final AuditoriaService auditoriaService;
     private final Clock clock;
 
     @Transactional
     public TurnoCajaDTO abrir(AperturaCajaDTO dto) {
-        Usuario cajero = autorizacionService.exigirRol(Rol.CAJERO, Rol.ADMIN);
+        Usuario cajero = accesoService.exigirPermiso(Permiso.CAJA_OPERAR);
         turnoCajaRepository.findByUsuarioIdAndEstado(cajero.getId(), EstadoTurnoCaja.ABIERTO)
                 .ifPresent(abierto -> {
                     throw new ReglaNegocioException("CAJA_YA_ABIERTA", "El usuario ya tiene un turno de caja abierto");
@@ -69,7 +76,7 @@ public class CajaService {
             throw new ReglaNegocioException("CAJA_YA_CERRADA", "El turno ya está cerrado");
         }
 
-        Usuario quienCierra = autorizacionService.exigirRol(Rol.CAJERO, Rol.ADMIN);
+        Usuario quienCierra = accesoService.exigirPermiso(Permiso.CAJA_OPERAR);
         if (!turno.getUsuarioId().equals(quienCierra.getId()) && quienCierra.getRol() != Rol.ADMIN) {
             throw new ReglaNegocioException("CAJA_AJENA", "Solo el cajero del turno o un administrador puede cerrar la caja");
         }
@@ -110,6 +117,14 @@ public class CajaService {
     }
 
     @Transactional(readOnly = true)
+    public EstadoCajaDTO estado() {
+        Usuario operador = autorizacionService.operadorActual();
+        return turnoCajaRepository.findByUsuarioIdAndEstado(operador.getId(), EstadoTurnoCaja.ABIERTO)
+                .map(turno -> EstadoCajaDTO.builder().abierta(true).turno(toDto(turno)).build())
+                .orElseGet(() -> EstadoCajaDTO.builder().abierta(false).turno(null).build());
+    }
+
+    @Transactional(readOnly = true)
     public TurnoCajaDTO abierta() {
         return abiertaDe(autorizacionService.operadorActual().getId());
     }
@@ -122,37 +137,83 @@ public class CajaService {
     }
 
     @Transactional(readOnly = true)
+    public PaginaDTO<TurnoCajaDTO> historial(int pagina, int tamano) {
+        return turnosDe(autorizacionService.operadorActual().getId(), pagina, tamano);
+    }
+
+    @Transactional(readOnly = true)
     public List<TurnoCajaDTO> historial() {
-        return turnosDe(autorizacionService.operadorActual().getId());
+        return historial(0, PaginacionUtil.TAMANO_MAX).getContenido();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<TurnoCajaDTO> historialDe(Long usuarioId, int pagina, int tamano) {
+        autorizacionService.exigirRol(Rol.ADMIN);
+        return turnosDe(usuarioId, pagina, tamano);
     }
 
     @Transactional(readOnly = true)
     public List<TurnoCajaDTO> historialDe(Long usuarioId) {
-        autorizacionService.exigirRol(Rol.ADMIN);
-        return turnosDe(usuarioId);
+        return historialDe(usuarioId, 0, PaginacionUtil.TAMANO_MAX).getContenido();
     }
 
-    private List<TurnoCajaDTO> turnosDe(Long usuarioId) {
-        return turnoCajaRepository.findByUsuarioIdOrderByFechaAperturaDesc(usuarioId).stream()
+    @Transactional(readOnly = true)
+    public List<TurnoCajaDTO> turnosEnPeriodo(LocalDateTime inicio, LocalDateTime fin) {
+        return turnoCajaRepository.findByFechaAperturaBetweenOrderByFechaAperturaDesc(inicio, fin).stream()
                 .map(this::toDto)
                 .toList();
     }
 
+    private PaginaDTO<TurnoCajaDTO> turnosDe(Long usuarioId, int pagina, int tamano) {
+        return PaginaDTO.de(turnoCajaRepository.findByUsuarioIdOrderByFechaAperturaDesc(
+                usuarioId, PaginacionUtil.pageable(pagina, tamano)
+        ).map(this::toDto));
+    }
+
+    private List<TurnoCajaDTO> turnosDe(Long usuarioId) {
+        return turnosDe(usuarioId, 0, PaginacionUtil.TAMANO_MAX).getContenido();
+    }
+
     private TurnoCajaDTO toDto(TurnoCaja turno) {
+        List<Venta> ventas = ventaRepository.findByTurnoCajaIdAndEstado(turno.getId(), EstadoVenta.COMPLETADA);
+        BigDecimal totalVentas = ventas.stream()
+                .map(Venta::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, REDONDEO);
+        BigDecimal ventasEfectivo = turno.getVentasEfectivo() != null
+                ? turno.getVentasEfectivo()
+                : ventas.stream()
+                .filter(venta -> venta.getFormaPago() == FormaPago.EFECTIVO)
+                .map(Venta::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, REDONDEO);
+        BigDecimal esperado = turno.getMontoEsperado() != null
+                ? turno.getMontoEsperado()
+                : turno.getMontoInicial().add(ventasEfectivo).setScale(2, REDONDEO);
+
         return TurnoCajaDTO.builder()
                 .id(turno.getId())
                 .usuarioId(turno.getUsuarioId())
+                .usuarioNombre(nombreUsuario(turno.getUsuarioId()))
                 .fechaApertura(turno.getFechaApertura())
                 .montoInicial(turno.getMontoInicial())
                 .fechaCierre(turno.getFechaCierre())
-                .ventasEfectivo(turno.getVentasEfectivo())
-                .montoEsperado(turno.getMontoEsperado())
+                .ventasEfectivo(ventasEfectivo)
+                .montoEsperado(esperado)
                 .montoFisico(turno.getMontoFisico())
                 .diferencia(turno.getDiferencia())
                 .resultadoArqueo(resultadoArqueo(turno.getDiferencia()))
                 .observacionArqueo(turno.getObservacionArqueo())
                 .estado(turno.getEstado())
+                .cantidadVentas(ventas.size())
+                .totalVentas(totalVentas)
                 .build();
+    }
+
+    private String nombreUsuario(Long usuarioId) {
+        return usuarioRepository.findById(usuarioId)
+                .map(Usuario::getNombreCompleto)
+                .orElse(null);
     }
 
     static String resultadoArqueo(BigDecimal diferencia) {

@@ -30,8 +30,9 @@ public class Cliente {
     @Column(nullable = false, length = 150)
     private String nombre;
 
+    /** RUC o cédula del cliente, según lo que presente para la factura. */
     @Column(length = 20)
-    private String rtn;
+    private String ruc;
 
     @Column(length = 20)
     private String telefono;

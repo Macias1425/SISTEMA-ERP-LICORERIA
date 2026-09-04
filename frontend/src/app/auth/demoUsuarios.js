@@ -1,0 +1,32 @@
+export const DEMO_USUARIOS = [
+  {
+    username: 'admin',
+    password: 'admin123',
+    rol: 'Administrador',
+    rolCodigo: 'ADMIN',
+    descripcion: 'Usuarios, configuración y todos los módulos',
+    icon: 'user',
+    tono: 'admin',
+    accent: '#5c4636',
+  },
+  {
+    username: 'cajero',
+    password: 'cajero123',
+    rol: 'Cajero',
+    rolCodigo: 'CAJERO',
+    descripcion: 'Punto de venta y turno de caja',
+    icon: 'cart',
+    tono: 'cajero',
+    accent: '#2f8f5b',
+  },
+  {
+    username: 'almacenista',
+    password: 'almacen123',
+    rol: 'Almacenista',
+    rolCodigo: 'ALMACENISTA',
+    descripcion: 'Productos, inventario y compras',
+    icon: 'package',
+    tono: 'almacen',
+    accent: '#6b8f71',
+  },
+];

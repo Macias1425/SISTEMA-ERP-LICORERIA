@@ -10,6 +10,7 @@ import com.licoreria.pos.model.TipoMovimiento;
 import com.licoreria.pos.repository.MovimientoInventarioRepository;
 import com.licoreria.pos.repository.PresentacionRepository;
 import com.licoreria.pos.repository.ProductoRepository;
+import com.licoreria.pos.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,8 @@ class InventarioServiceTest {
     private PresentacionRepository presentacionRepository;
     @Mock
     private MovimientoInventarioRepository movimientoInventarioRepository;
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     private InventarioService inventarioService;
 
@@ -43,9 +46,12 @@ class InventarioServiceTest {
                 productoRepository,
                 presentacionRepository,
                 movimientoInventarioRepository,
+                usuarioRepository,
                 new ConversionUnidades(),
                 org.mockito.Mockito.mock(AuditoriaService.class),
-                org.mockito.Mockito.mock(AutorizacionService.class)
+                org.mockito.Mockito.mock(AutorizacionService.class),
+                org.mockito.Mockito.mock(PermisoService.class),
+                org.mockito.Mockito.mock(LoteService.class)
         );
     }
 
@@ -77,6 +83,25 @@ class InventarioServiceTest {
 
         assertThrows(StockInsuficienteException.class,
                 () -> inventarioService.descontar(1L, 2L, 1, TipoMovimiento.SALIDA, "Venta", 10L));
+        assertEquals(10, producto.getStockActual());
+    }
+
+    @Test
+    void rechazaDemandaMayorAlStockDisponible() {
+        Producto producto = productoConStock(10);
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(producto));
+
+        assertThrows(StockInsuficienteException.class,
+                () -> inventarioService.exigirStockDisponible(1L, 11));
+        assertEquals(10, producto.getStockActual());
+    }
+
+    @Test
+    void aceptaDemandaIgualAlStock() {
+        Producto producto = productoConStock(10);
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(producto));
+
+        inventarioService.exigirStockDisponible(1L, 10);
         assertEquals(10, producto.getStockActual());
     }
 

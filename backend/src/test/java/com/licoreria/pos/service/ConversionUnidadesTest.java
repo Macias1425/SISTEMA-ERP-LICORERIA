@@ -12,25 +12,13 @@ class ConversionUnidadesTest {
     private final ConversionUnidades conversion = new ConversionUnidades();
 
     @Test
-    void cajaDeDocePorDosUnidadesSonVeinticuatroBotellas() {
+    void convierteCajaABotellas() {
         Presentacion caja = Presentacion.builder()
                 .nombre("Caja")
                 .factorAUnidadMinima(12)
                 .activo(true)
                 .build();
-
         assertEquals(24, conversion.aUnidadMinima(caja, 2));
-    }
-
-    @Test
-    void sixPackEsSeisBotellas() {
-        Presentacion sixPack = Presentacion.builder()
-                .nombre("Six-pack")
-                .factorAUnidadMinima(6)
-                .activo(true)
-                .build();
-
-        assertEquals(6, conversion.aUnidadMinima(sixPack, 1));
     }
 
     @Test
@@ -40,7 +28,20 @@ class ConversionUnidadesTest {
                 .factorAUnidadMinima(1)
                 .activo(true)
                 .build();
+        ReglaNegocioException error = assertThrows(ReglaNegocioException.class,
+                () -> conversion.aUnidadMinima(botella, 0));
+        assertEquals("CANTIDAD_INVALIDA", error.getCodigo());
+    }
 
-        assertThrows(ReglaNegocioException.class, () -> conversion.aUnidadMinima(botella, 0));
+    @Test
+    void rechazaPresentacionInactiva() {
+        Presentacion inactiva = Presentacion.builder()
+                .nombre("Six pack")
+                .factorAUnidadMinima(6)
+                .activo(false)
+                .build();
+        ReglaNegocioException error = assertThrows(ReglaNegocioException.class,
+                () -> conversion.aUnidadMinima(inactiva, 1));
+        assertEquals("PRESENTACION_INACTIVA", error.getCodigo());
     }
 }

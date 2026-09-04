@@ -22,8 +22,8 @@ class MayoriaEdadServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(
-                LocalDateTime.of(2026, 8, 19, 12, 0).atZone(ZoneId.of("America/Tegucigalpa")).toInstant(),
-                ZoneId.of("America/Tegucigalpa")
+                LocalDateTime.of(2026, 8, 19, 12, 0).atZone(ZoneId.of("America/Managua")).toInstant(),
+                ZoneId.of("America/Managua")
         );
         service = new MayoriaEdadService(new PosProperties(), clock);
     }

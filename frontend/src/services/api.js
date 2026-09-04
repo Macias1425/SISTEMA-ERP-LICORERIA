@@ -8,6 +8,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = status;
     this.codigo = codigo;
+    this.mensaje = mensaje;
   }
 }
 
@@ -30,7 +31,7 @@ async function request(path, options = {}) {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
-  if (token) {
+  if (token && path !== '/auth/login') {
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -49,7 +50,11 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw await parseError(response);
+    const err = await parseError(response);
+    if (err.codigo === 'FUERA_DE_HORARIO_ACCESO') {
+      clearToken();
+    }
+    throw err;
   }
 
   if (response.status === 204) {

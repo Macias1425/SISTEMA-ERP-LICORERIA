@@ -31,8 +31,13 @@ export function AuthProvider({ children }) {
     autenticado: Boolean(usuario),
     debeCambiarPassword: Boolean(usuario?.debeCambiarPassword),
     tieneRol: (...roles) => Boolean(usuario && roles.includes(usuario.rol)),
+    tienePermiso: (...permisos) => Boolean(
+      usuario?.permisosEfectivos?.some((p) => permisos.includes(p))
+      || usuario?.rol === 'ADMIN'
+    ),
 
     async login(username, password) {
+      clearToken();
       const respuesta = await authService.login({ username, password });
       setToken(respuesta.token);
       const perfil = await authService.me();
@@ -66,7 +71,10 @@ export function useAuth() {
 
 export function mensajeError(error) {
   if (error instanceof ApiError) {
-    return error.mensaje || error.message;
+    const texto = error.mensaje || error.message || 'Ocurrió un error';
+    return error.codigo && error.codigo !== 'ERROR'
+      ? `${texto} (${error.codigo})`
+      : texto;
   }
   return error?.message || 'Ocurrió un error';
 }

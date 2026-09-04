@@ -43,7 +43,7 @@ public class AuthController {
     }
 
     @GetMapping("/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@acceso.tiene('USUARIOS_VER','USUARIOS_GESTIONAR')")
     public ResponseEntity<List<Rol>> roles() {
         return ResponseEntity.ok(Arrays.asList(Rol.values()));
     }

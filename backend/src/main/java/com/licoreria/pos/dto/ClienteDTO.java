@@ -20,7 +20,7 @@ public class ClienteDTO {
     @NotBlank(message = "El nombre del cliente es obligatorio")
     private String nombre;
 
-    private String rtn;
+    private String ruc;
     private String telefono;
     private String direccion;
 

@@ -1,6 +1,7 @@
 package com.licoreria.pos.dto;
 
 import com.licoreria.pos.model.NivelAlerta;
+import com.licoreria.pos.model.PoliticaPrecio;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +34,9 @@ public class ProductoDTO {
     private String nombre;
 
     private String marca;
+    private String urlImagen;
     private Long categoriaId;
+    private String categoriaNombre;
 
     @Builder.Default
     private String unidadMinima = "BOTELLA";
@@ -40,6 +44,12 @@ public class ProductoDTO {
     @NotNull(message = "El precio de compra es obligatorio")
     @DecimalMin(value = "0.0", message = "El precio de compra no puede ser negativo")
     private BigDecimal precioCompra;
+
+    /** Costo promedio ponderado (CPP) en UMM; alias de precioCompra. */
+    private BigDecimal costoPromedio;
+
+    /** Último costo unitario de compra en UMM. */
+    private BigDecimal ultimoCostoCompra;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", message = "El precio de venta no puede ser negativo")
@@ -57,13 +67,27 @@ public class ProductoDTO {
     @Builder.Default
     private Integer stockCritico = 0;
 
+    private LocalDate fechaVencimiento;
+
     @Builder.Default
     private Boolean esAlcoholico = true;
 
     @Builder.Default
     private Boolean activo = true;
 
+    @Builder.Default
+    private PoliticaPrecio politicaPrecio = PoliticaPrecio.MANUAL;
+
+    /** Margen sobre venta (%) para políticas sugerido / automático. */
+    private BigDecimal margenObjetivoPct;
+
+    /** Solo lectura: precio de venta calculado con el margen objetivo y costo actual. */
+    private BigDecimal precioVentaSugerido;
+
     private NivelAlerta nivelAlerta;
+
+    private Boolean eliminable;
+    private String motivoNoEliminable;
 
     @Valid
     @Builder.Default

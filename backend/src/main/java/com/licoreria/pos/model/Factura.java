@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -42,8 +43,21 @@ public class Factura {
     @Column(length = 150)
     private String clienteNombre;
 
-    @Column(length = 20)
-    private String clienteRtn;
+    @Column(name = "cliente_ruc", length = 20)
+    private String clienteRuc;
+
+    /** Número dentro del rango autorizado por la DGI (null si el régimen fiscal está desactivado). */
+    @Column(name = "numero_fiscal", length = 40)
+    private String numeroFiscal;
+
+    @Column(name = "autorizacion_dgi", length = 60)
+    private String autorizacionDgi;
+
+    @Column(name = "rango_autorizado", length = 120)
+    private String rangoAutorizado;
+
+    @Column(name = "fecha_limite_emision")
+    private LocalDate fechaLimiteEmision;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;

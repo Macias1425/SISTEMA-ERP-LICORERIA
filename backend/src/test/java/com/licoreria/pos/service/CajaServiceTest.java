@@ -5,11 +5,13 @@ import com.licoreria.pos.exception.ReglaNegocioException;
 import com.licoreria.pos.model.EstadoTurnoCaja;
 import com.licoreria.pos.model.EstadoVenta;
 import com.licoreria.pos.model.FormaPago;
+import com.licoreria.pos.model.Permiso;
 import com.licoreria.pos.model.Rol;
 import com.licoreria.pos.model.TurnoCaja;
 import com.licoreria.pos.model.Usuario;
 import com.licoreria.pos.model.Venta;
 import com.licoreria.pos.repository.TurnoCajaRepository;
+import com.licoreria.pos.repository.UsuarioRepository;
 import com.licoreria.pos.repository.VentaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,11 @@ class CajaServiceTest {
     @Mock
     private VentaRepository ventaRepository;
     @Mock
+    private UsuarioRepository usuarioRepository;
+    @Mock
     private AutorizacionService autorizacionService;
+    @Mock
+    private AccesoService accesoService;
     @Mock
     private AuditoriaService auditoriaService;
 
@@ -46,10 +52,12 @@ class CajaServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(
-                LocalDateTime.of(2026, 8, 18, 21, 0).atZone(ZoneId.of("America/Tegucigalpa")).toInstant(),
-                ZoneId.of("America/Tegucigalpa")
+                LocalDateTime.of(2026, 8, 18, 21, 0).atZone(ZoneId.of("America/Managua")).toInstant(),
+                ZoneId.of("America/Managua")
         );
-        cajaService = new CajaService(turnoCajaRepository, ventaRepository, autorizacionService, auditoriaService, clock);
+        cajaService = new CajaService(
+                turnoCajaRepository, ventaRepository, usuarioRepository, autorizacionService, accesoService,
+                auditoriaService, clock);
     }
 
     @Test
@@ -74,7 +82,7 @@ class CajaServiceTest {
                 .build();
 
         when(turnoCajaRepository.findById(1L)).thenReturn(Optional.of(turno));
-        when(autorizacionService.exigirRol(Rol.CAJERO, Rol.ADMIN)).thenReturn(cajero);
+        when(accesoService.exigirPermiso(Permiso.CAJA_OPERAR)).thenReturn(cajero);
         when(ventaRepository.findByTurnoCajaIdAndEstado(1L, EstadoVenta.COMPLETADA)).thenReturn(List.of(venta));
         when(turnoCajaRepository.save(any(TurnoCaja.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -85,5 +93,15 @@ class CajaServiceTest {
         assertEquals(new BigDecimal("150.00"), cerrado.getMontoEsperado());
         assertEquals(new BigDecimal("-10.00"), cerrado.getDiferencia());
         assertEquals("FALTANTE", cerrado.getResultadoArqueo());
+    }
+
+    @Test
+    void estadoSinTurnoNoEsError() {
+        Usuario cajero = Usuario.builder().id(2L).rol(Rol.CAJERO).activo(true).build();
+        when(autorizacionService.operadorActual()).thenReturn(cajero);
+        when(turnoCajaRepository.findByUsuarioIdAndEstado(2L, EstadoTurnoCaja.ABIERTO)).thenReturn(Optional.empty());
+
+        var estado = cajaService.estado();
+        assertEquals(false, estado.isAbierta());
     }
 }

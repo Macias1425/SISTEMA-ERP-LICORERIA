@@ -55,4 +55,8 @@ public class Usuario {
     private LocalDateTime ultimoAcceso;
 
     private LocalDateTime passwordActualizadaEn;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean horarioAccesoHabilitado = false;
 }

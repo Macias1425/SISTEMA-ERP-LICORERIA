@@ -44,6 +44,8 @@ public class HorarioVentaService {
                 .horarioHabilitado(habilitado)
                 .ventaLicorPermitidaAhora(permitido)
                 .edadMinimaAlcohol(posProperties.getNormativa().getEdadMinimaAlcohol())
+                .tasaIva(posProperties.getImpuesto().getTasaIva())
+                .volumenMinimoUmm(posProperties.getMayorista().getVolumenMinimoUmm())
                 .mensaje(permitido ? "Venta de licor permitida" : "Venta de licor bloqueada por horario")
                 .build();
     }

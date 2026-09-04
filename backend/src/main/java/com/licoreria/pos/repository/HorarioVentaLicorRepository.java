@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface HorarioVentaLicorRepository extends JpaRepository<HorarioVentaLicor, Long> {
 
     Optional<HorarioVentaLicor> findByDiaSemanaAndActivoTrue(DayOfWeek diaSemana);
+
+    Optional<HorarioVentaLicor> findByDiaSemana(DayOfWeek diaSemana);
 }

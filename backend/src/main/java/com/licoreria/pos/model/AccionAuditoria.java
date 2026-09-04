@@ -8,8 +8,10 @@ public enum AccionAuditoria {
     CAMBIO_PRECIO,
     AJUSTE_STOCK,
     ENTRADA_STOCK,
+    COMPRA,
     BORRADO_PRODUCTO,
     APERTURA_CAJA,
     CIERRE_CAJA,
-    VENTA
+    VENTA,
+    CONFIGURACION
 }

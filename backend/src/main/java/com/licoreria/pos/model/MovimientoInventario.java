@@ -57,4 +57,21 @@ public class MovimientoInventario {
 
     @Column(name = "usuario_id")
     private Long usuarioId;
+
+    @Column(name = "compra_id")
+    private Long compraId;
+
+    @Column(name = "venta_id")
+    private Long ventaId;
+
+    @Column(name = "merma_id")
+    private Long mermaId;
+
+    /** Para ajustes: true suma stock, false resta. */
+    @Column(name = "incremento")
+    private Boolean incremento;
+
+    /** Trazabilidad FEFO: lotes afectados por el movimiento, ej. "L20260830-4x6". */
+    @Column(name = "detalle_lotes", length = 255)
+    private String detalleLotes;
 }

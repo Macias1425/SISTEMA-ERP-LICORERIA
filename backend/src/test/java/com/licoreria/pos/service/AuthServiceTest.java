@@ -36,6 +36,10 @@ class AuthServiceTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private UsuarioActualService usuarioActualService;
+    @Mock
+    private PermisoService permisoService;
+    @Mock
+    private HorarioAccesoService horarioAccesoService;
 
     private AuthService authService;
     private PasswordEncoder passwordEncoder;
@@ -54,6 +58,8 @@ class AuthServiceTest {
                 new LoginAttemptService(properties, clock),
                 new PoliticaPassword(),
                 usuarioActualService,
+                permisoService,
+                horarioAccesoService,
                 clock
         );
     }
@@ -71,6 +77,7 @@ class AuthServiceTest {
                 .build();
         when(usuarioRepository.findByUsername("admin")).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(horarioAccesoService.accesoPermitidoAhora(any(Usuario.class))).thenReturn(true);
 
         var respuesta = authService.login(new LoginRequestDTO("admin", "admin1234"));
 

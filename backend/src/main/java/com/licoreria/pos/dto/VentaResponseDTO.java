@@ -26,7 +26,9 @@ public class VentaResponseDTO {
     private Long id;
     private String numero;
     private Long clienteId;
+    private String clienteNombre;
     private Long usuarioId;
+    private String cajeroNombre;
     private TipoCliente tipoClienteSolicitado;
     private TipoCliente tipoClienteAplicado;
     private LocalDateTime fecha;
@@ -40,6 +42,8 @@ public class VentaResponseDTO {
     private String observacion;
     private Long turnoCajaId;
     private FormaPago formaPago;
+    private BigDecimal montoRecibido;
+    private BigDecimal vuelto;
     private EstadoVenta estado;
     private FacturaDTO factura;
 

@@ -95,6 +95,16 @@ public class Venta {
     @Builder.Default
     private FormaPago formaPago = FormaPago.EFECTIVO;
 
+    @Column(name = "monto_recibido", precision = 12, scale = 2)
+    private BigDecimal montoRecibido;
+
+    @Column(precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal vuelto = BigDecimal.ZERO;
+
+    @Column(name = "clave_idempotencia", unique = true, length = 80)
+    private String claveIdempotencia;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

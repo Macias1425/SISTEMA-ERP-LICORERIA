@@ -3,6 +3,8 @@ package com.licoreria.pos.model;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +44,9 @@ public class Producto {
     @Column(length = 80)
     private String marca;
 
+    @Column(name = "url_imagen", length = 512)
+    private String urlImagen;
+
     @Column(name = "categoria_id")
     private Long categoriaId;
 
@@ -50,6 +56,10 @@ public class Producto {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal precioCompra;
+
+    /** Último costo unitario en UMM registrado por una recepción de compra. */
+    @Column(name = "ultimo_costo_compra", precision = 12, scale = 4)
+    private BigDecimal ultimoCostoCompra;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal precioVenta;
@@ -67,6 +77,9 @@ public class Producto {
     @Builder.Default
     private Integer stockCritico = 0;
 
+    @Column(name = "fecha_vencimiento")
+    private LocalDate fechaVencimiento;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean esAlcoholico = true;
@@ -74,6 +87,16 @@ public class Producto {
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
+
+    /** Cómo reacciona el precio de venta cuando el costo cambia por compras. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "politica_precio", nullable = false, length = 24)
+    @Builder.Default
+    private PoliticaPrecio politicaPrecio = PoliticaPrecio.MANUAL;
+
+    /** Margen sobre precio de venta (%) para políticas SUGERIDO y AUTOMATICO_MARKUP. */
+    @Column(name = "margen_objetivo_pct", precision = 5, scale = 2)
+    private BigDecimal margenObjetivoPct;
 
     @Version
     private Long version;

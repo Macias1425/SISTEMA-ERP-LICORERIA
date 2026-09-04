@@ -41,6 +41,16 @@ class AuthControllerTest {
     }
 
     @Test
+    void loginIgnoraTokenViejoYNoDevuelve403() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .header("Authorization", "Bearer token-viejo-invalido")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequestDTO("admin", "admin123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("admin"));
+    }
+
+    @Test
     void loginIncorrectoEs401SinRevelarUsuario() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

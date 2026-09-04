@@ -3,9 +3,9 @@ spring:
     name: pos-licoreria
 
   datasource:
-    url: jdbc:mysql://localhost:3306/pos_licoreria?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Tegucigalpa&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/pos_licoreria?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Managua&characterEncoding=UTF-8
     username: root
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:2212mamapoose}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -17,12 +17,17 @@ spring:
       hibernate:
         format_sql: true
         jdbc:
-          time_zone: America/Tegucigalpa
+          time_zone: America/Managua
 
   jackson:
     serialization:
       write-dates-as-timestamps: false
-    time-zone: America/Tegucigalpa
+    time-zone: America/Managua
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 server:
   port: 8080
@@ -32,9 +37,15 @@ pos:
     edad-minima-alcohol: 18
     horario-habilitado: true
   impuesto:
-    tasa-isv: 0.15
+    tasa-iva: 0.15
   mayorista:
     volumen-minimo-umm: 6
+  respaldo:
+    directorio: ${BACKUP_DIR:./backups}
+    mysqldump-path: ${MYSQLDUMP_PATH:mysqldump}
+    mysql-path: ${MYSQL_PATH:mysql}
+    max-respaldos: 30
+    permitir-restaurar: true
   jwt:
     secret: ${JWT_SECRET:cambiar-esta-clave-en-produccion-pos-licoreria-2026}
     expiration-ms: 28800000

@@ -16,7 +16,9 @@ import java.math.BigDecimal;
 public class DetalleVentaResponseDTO {
 
     private Long productoId;
+    private String productoNombre;
     private Long presentacionId;
+    private String presentacionNombre;
     private Integer cantidad;
     private Integer cantidadUmm;
     private BigDecimal precioUnitarioUmm;
