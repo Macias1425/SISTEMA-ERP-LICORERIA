@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../services/api';
-import { mensajeError } from '../../auth/AuthContext';
+import { mensajeError, useAuth } from '../../auth/AuthContext';
+import { PERMISOS } from '../../auth/permisos';
+import { rutaInicioPorPermisos } from '../../auth/rolesInfo';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -53,6 +55,8 @@ function nuevaClaveCobro() {
 }
 
 export default function PosPage() {
+  const navigate = useNavigate();
+  const { logout, tienePermiso, usuario } = useAuth();
   const [turno, setTurno] = useState(null);
   const [catalogo, setCatalogo] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -543,6 +547,18 @@ export default function PosPage() {
     }
   }
 
+  /** Sin acceso al panel: tras cerrar caja cierra sesión (evita bucle /dashboard → /pos). */
+  function irAlInicio() {
+    if (!tienePermiso(PERMISOS.DASHBOARD_VER)) {
+      if (!turno) {
+        logout();
+        navigate('/login', { replace: true });
+      }
+      return;
+    }
+    navigate(rutaInicioPorPermisos(usuario) || '/dashboard');
+  }
+
   if (cargando) {
     return <p className="placeholder">Cargando caja…</p>;
   }
@@ -581,7 +597,9 @@ export default function PosPage() {
             <Button type="submit" disabled={guardando}>
               {guardando ? 'Abriendo…' : 'Comenzar a vender'}
             </Button>
-            <Link to="/dashboard" className="btn secondary">Volver al inicio</Link>
+            <Button type="button" variant="secondary" onClick={irAlInicio}>
+              Volver al inicio
+            </Button>
           </form>
         </article>
       </section>
@@ -591,9 +609,11 @@ export default function PosPage() {
   return (
     <section className="pos-page-mock">
       <header className="pos-toolbar">
-        <Link to="/dashboard" className="pos-toolbar-btn">
-          Inicio
-        </Link>
+        {tienePermiso(PERMISOS.DASHBOARD_VER) ? (
+          <button type="button" className="pos-toolbar-btn" onClick={irAlInicio}>
+            Inicio
+          </button>
+        ) : null}
         <EscanerBusqueda
           onBuscar={buscarPos}
           onAgregar={agregar}
