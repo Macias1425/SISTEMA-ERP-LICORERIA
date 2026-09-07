@@ -42,8 +42,10 @@ export const NAV_GRUPOS = [
     enlaces: [
       { to: '/pos', label: 'POS', icono: 'pos', permisos: [PERMISOS.VENTAS_CREAR] },
       { to: '/facturas', label: 'Facturas', icono: 'facturas', permisos: [PERMISOS.FACTURAS_VER] },
+      { to: '/creditos', label: 'Créditos', icono: 'facturas', permisos: [PERMISOS.FACTURAS_VER, PERMISOS.VENTAS_CREAR] },
       { to: '/control-ventas', label: 'Control ventas', icono: 'control-ventas', permisos: [PERMISOS.CONTROL_VENTAS_VER] },
       { to: '/reportes', label: 'Reportes', icono: 'reportes', permisos: [PERMISOS.REPORTES_VER] },
+      { to: '/corte-dia', label: 'Corte del día', icono: 'reportes', permisos: [PERMISOS.REPORTES_VER] },
       { to: '/finanzas', label: 'Finanzas', icono: 'finanzas', permisos: [PERMISOS.FINANZAS_VER] },
     ],
   },
@@ -86,6 +88,7 @@ export const NAV_ENLACES = [
 export const RUTAS_PERMISOS = {
   '/dashboard': [PERMISOS.DASHBOARD_VER],
   '/reportes': [PERMISOS.REPORTES_VER],
+  '/corte-dia': [PERMISOS.REPORTES_VER],
   '/vencimientos': [PERMISOS.REPORTES_VER],
   '/finanzas': [PERMISOS.FINANZAS_VER],
   '/productos': [PERMISOS.PRODUCTOS_VER, PERMISOS.PRODUCTOS_GESTIONAR],
@@ -96,6 +99,7 @@ export const RUTAS_PERMISOS = {
   '/compras': [PERMISOS.INVENTARIO_VER, PERMISOS.COMPRAS_GESTIONAR],
   '/pos': [PERMISOS.VENTAS_CREAR],
   '/facturas': [PERMISOS.FACTURAS_VER],
+  '/creditos': [PERMISOS.FACTURAS_VER, PERMISOS.VENTAS_CREAR],
   '/usuarios': [PERMISOS.USUARIOS_VER, PERMISOS.USUARIOS_GESTIONAR],
   '/usuarios/permisos': [PERMISOS.PERMISOS_GESTIONAR],
   '/control-ventas': [PERMISOS.CONTROL_VENTAS_VER],

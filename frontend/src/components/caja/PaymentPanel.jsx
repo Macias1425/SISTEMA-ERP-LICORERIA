@@ -2,6 +2,7 @@ import Button from '../ui/Button';
 import Icon from '../ui/Icon';
 import { hoyLocalIso } from '../../utils/edadUtil';
 import { dinero } from '../../utils/formato';
+import StripePaymentBox from './StripePaymentBox';
 
 const DENOMINACIONES = [10, 20, 50, 100, 200, 500];
 
@@ -30,24 +31,33 @@ export default function PaymentPanel({
   exigeSupervisor = false,
   limiteVentasAlcanzado = false,
   cobrando,
+  stripeEnabled = false,
+  stripePublishableKey = '',
+  stripeCurrency = 'usd',
+  clienteCreditoOk = false,
   onChange,
   onCobrar,
   onCancelar,
   onFormaPago,
   onMontoExacto,
   onAgregarEfectivo,
+  onStripePaid,
 }) {
   const minimoMayorista = Number(volumenMinimo || 6);
   const totalCobrar = Number(total || 0);
   const recibido = Number(montoRecibido || 0);
   const efectivo = formaPago === 'EFECTIVO';
+  const stripe = formaPago === 'STRIPE';
+  const credito = formaPago === 'CREDITO';
   const faltaEfectivo = efectivo && (montoRecibido === '' || recibido + 1e-9 < totalCobrar);
   const porPagar = efectivo ? Math.max(0, totalCobrar - recibido) : 0;
   const vuelto = efectivo && !faltaEfectivo ? recibido - totalCobrar : 0;
   const horarioBloqueado = hayAlcohol && !licorPermitido;
   const edadOk = !hayAlcohol || verificacionEdad.ok;
-  const puedeCobrar = !cobrando && !cotizando && !bloqueado && totalCobrar > 0 && !faltaEfectivo
+  const baseOk = !cobrando && !cotizando && !bloqueado && totalCobrar > 0
     && edadOk && !horarioBloqueado && !limiteVentasAlcanzado;
+  const puedeCobrar = baseOk && !faltaEfectivo && !stripe;
+  const stripeBloqueado = !baseOk;
   const hoy = hoyLocalIso();
 
   return (
@@ -165,6 +175,30 @@ export default function PaymentPanel({
             <Icon name="creditCard" size={16} strokeWidth={2} />
             Tarjeta
           </button>
+          {stripeEnabled ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={formaPago === 'STRIPE'}
+              className={`pos-checkout-method${formaPago === 'STRIPE' ? ' active' : ''}`}
+              onClick={() => onFormaPago('STRIPE')}
+            >
+              <Icon name="wallet" size={16} strokeWidth={2} />
+              Stripe
+            </button>
+          ) : null}
+          {clienteCreditoOk ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={formaPago === 'CREDITO'}
+              className={`pos-checkout-method${formaPago === 'CREDITO' ? ' active' : ''}`}
+              onClick={() => onFormaPago('CREDITO')}
+            >
+              <Icon name="hand" size={16} strokeWidth={2} />
+              Crédito
+            </button>
+          ) : null}
         </div>
 
         {efectivo ? (
@@ -202,26 +236,41 @@ export default function PaymentPanel({
               ))}
             </div>
           </div>
+        ) : stripe ? (
+          <StripePaymentBox
+            total={totalCobrar}
+            publishableKey={stripePublishableKey}
+            currency={stripeCurrency}
+            disabled={stripeBloqueado}
+            onPaid={onStripePaid}
+            onCancel={onCancelar}
+          />
+        ) : credito ? (
+          <p className="pos-checkout-card-hint">
+            Se cargará al saldo del cliente. Debe tener límite de crédito disponible.
+          </p>
         ) : (
           <p className="pos-checkout-card-hint">El cobro con tarjeta registrará el monto total.</p>
         )}
       </div>
 
-      <footer className="pos-checkout-foot">
-        <button
-          type="button"
-          className="pos-checkout-pay"
-          onClick={onCobrar}
-          disabled={!puedeCobrar}
-        >
-          <Icon name="wallet" size={20} strokeWidth={2} />
-          {cobrando ? 'Procesando…' : `Cobrar ${dinero(totalCobrar)}`}
-        </button>
-        <Button type="button" variant="secondary" className="pos-checkout-cancel" onClick={onCancelar} disabled={cobrando}>
-          <Icon name="x" size={16} strokeWidth={2.5} />
-          Cancelar
-        </Button>
-      </footer>
+      {!stripe ? (
+        <footer className="pos-checkout-foot">
+          <button
+            type="button"
+            className="pos-checkout-pay"
+            onClick={onCobrar}
+            disabled={!puedeCobrar}
+          >
+            <Icon name="wallet" size={20} strokeWidth={2} />
+            {cobrando ? 'Procesando…' : `Cobrar ${dinero(totalCobrar)}`}
+          </button>
+          <Button type="button" variant="secondary" className="pos-checkout-cancel" onClick={onCancelar} disabled={cobrando}>
+            <Icon name="x" size={16} strokeWidth={2.5} />
+            Cancelar
+          </Button>
+        </footer>
+      ) : null}
     </section>
   );
 }

@@ -26,9 +26,10 @@ function etiquetaPago(formaPago) {
   const mapa = {
     EFECTIVO: 'Efectivo',
     TARJETA: 'Tarjeta',
+    STRIPE: 'Stripe',
+    CREDITO: 'Crédito',
     TRANSFERENCIA: 'Transferencia',
     MIXTO: 'Pago mixto',
-    CREDITO: 'Crédito',
   };
   return mapa[formaPago] || formaPago || '—';
 }

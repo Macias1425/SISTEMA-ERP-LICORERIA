@@ -22,6 +22,8 @@ import EmptyState from '../../components/ui/EmptyState';
 
 import Icon from '../../components/ui/Icon';
 
+import Modal from '../../components/ui/Modal';
+
 import Pagination from '../../components/ui/Pagination';
 
 import { compraService } from '../../services/compraService';
@@ -80,6 +82,12 @@ export default function ComprasPage() {
   const [modalDetalle, setModalDetalle] = useState(false);
 
   const [modalAnular, setModalAnular] = useState(false);
+
+  const [sugerencias, setSugerencias] = useState([]);
+
+  const [modalSugerencias, setModalSugerencias] = useState(false);
+
+  const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
 
   const [error, setError] = useState('');
 
@@ -158,7 +166,22 @@ export default function ComprasPage() {
     }
   }
 
+  async function abrirSugerencias() {
+    setCargandoSugerencias(true);
+    setError('');
+    try {
+      const lista = await compraService.sugerencias({ diasHistorial: 30, diasCobertura: 14 });
+      setSugerencias(Array.isArray(lista) ? lista : []);
+      setModalSugerencias(true);
+    } catch (err) {
+      setError(mensajeError(err));
+    } finally {
+      setCargandoSugerencias(false);
+    }
+  }
+
   async function abrirModalCompra(modo) {
+
     await cargarProductos();
     setModalModo(modo);
   }
@@ -409,6 +432,14 @@ export default function ComprasPage() {
         {puedeGestionar ? (
 
           <div className="com-topbar-actions">
+
+            <Button variant="secondary" onClick={abrirSugerencias} disabled={cargandoSugerencias}>
+
+              <Icon name="clipboard" size={16} strokeWidth={2} />
+
+              {cargandoSugerencias ? 'Calculando…' : 'Sugerir pedido'}
+
+            </Button>
 
             <Button variant="secondary" onClick={() => abrirModalCompra('orden')}>
 
@@ -769,6 +800,47 @@ export default function ComprasPage() {
         onConfirmar={confirmarAnulacion}
 
       />
+
+      <Modal
+        open={modalSugerencias}
+        title="Pedido sugerido"
+        subtitle="Según ventas de 30 días y cobertura 14 días"
+        onClose={() => setModalSugerencias(false)}
+        size="lg"
+      >
+        {!sugerencias.length ? (
+          <p className="placeholder">No hay sugerencias: stock suficiente o sin historial de ventas.</p>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Vend. 30d</th>
+                <th>Sugerido</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sugerencias.map((item) => (
+                <tr key={item.productoId}>
+                  <td>
+                    <strong>{item.nombre}</strong>
+                    <div className="muted">{item.codigo}</div>
+                  </td>
+                  <td>{item.stockActual}</td>
+                  <td>{item.vendidoPeriodoUmm}</td>
+                  <td><strong>{item.sugeridoUmm}</strong> UMM</td>
+                  <td className="muted">{item.motivo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="muted" style={{ marginTop: '0.75rem' }}>
+          Use estas cantidades al crear una orden de compra. El costo lo define el proveedor.
+        </p>
+      </Modal>
 
     </section>
 

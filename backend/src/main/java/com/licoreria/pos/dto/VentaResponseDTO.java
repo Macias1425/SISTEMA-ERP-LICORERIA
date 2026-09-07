@@ -43,6 +43,7 @@ public class VentaResponseDTO {
     private Long turnoCajaId;
     private FormaPago formaPago;
     private BigDecimal montoRecibido;
+    private String stripePaymentIntentId;
     private BigDecimal vuelto;
     private EstadoVenta estado;
     private FacturaDTO factura;

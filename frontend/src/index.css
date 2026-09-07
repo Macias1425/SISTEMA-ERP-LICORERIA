@@ -9317,6 +9317,22 @@ a.btn {
   border-radius: 8px;
 }
 
+.pos-stripe-box {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pos-stripe-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pos-stripe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .pos-checkout-age {
   padding: 0.65rem;
   background: #f4faf6;
@@ -9815,3 +9831,98 @@ a.btn {
   align-items: center;
   gap: 0.65rem;
 }
+
+/* —— Corte del día —— */
+.corte-page .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.corte-page .page-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.corte-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: flex-end;
+}
+
+.corte-fecha {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.corte-fecha input {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.corte-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.corte-kpi {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.corte-kpi span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.corte-kpi strong {
+  font-size: 1.15rem;
+}
+
+.corte-kpi small {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.corte-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.corte-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.corte-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.corte-card .muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+

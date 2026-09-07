@@ -44,6 +44,10 @@ public class VentaRequestDTO {
     @DecimalMin(value = "0.0", message = "El monto recibido no puede ser negativo")
     private BigDecimal montoRecibido;
 
+    /** Obligatorio solo si formaPago = STRIPE y Stripe está habilitado. */
+    @Size(max = 80, message = "El id de PaymentIntent es demasiado largo")
+    private String stripePaymentIntentId;
+
     @Size(max = 80, message = "La clave de idempotencia es demasiado larga")
     private String claveIdempotencia;
 

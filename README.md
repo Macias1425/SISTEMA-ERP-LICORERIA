@@ -259,6 +259,22 @@ permite fijar el tiempo en las pruebas.
 
 ## 6. Cómo ejecutar
 
+### Opción A — Docker (recomendado para clonar y levantar todo)
+
+Requiere [Docker Desktop](https://www.docker.com/products/docker-desktop/). Detalle en [`DOCKER.md`](DOCKER.md).
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+O en Windows: `iniciar-docker.bat`
+
+- App: http://localhost:5173 · Login: `admin` / `admin123`
+- MySQL va dentro del compose (no hace falta instalar MySQL en la laptop).
+
+### Opción B — Local (como antes)
+
 **Backend** (puerto `8080`):
 
 ```bash
@@ -277,6 +293,9 @@ npm run dev
 La SPA hace proxy de `/api` hacia `http://localhost:8080`.
 El primer arranque crea los datos iniciales, incluido el usuario administrador, que debe
 cambiar su contraseña en el primer inicio de sesión.
+
+Stripe está **desactivado** por defecto (`STRIPE_ENABLED=false`). No cambia el cobro
+efectivo/tarjeta hasta que actives claves de prueba en `.env` (ver `DOCKER.md`).
 
 ## 7. Pruebas
 

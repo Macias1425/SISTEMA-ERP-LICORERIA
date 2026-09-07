@@ -3,8 +3,8 @@ spring:
     name: pos-licoreria
 
   datasource:
-    url: jdbc:mysql://localhost:3306/pos_licoreria?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Managua&characterEncoding=UTF-8
-    username: root
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/pos_licoreria?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Managua&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${DB_PASSWORD:2212mamapoose}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
@@ -51,6 +51,13 @@ pos:
     expiration-ms: 28800000
     max-intentos-login: 5
     bloqueo-minutos: 15
+  # Stripe: desactivado por defecto. Sin claves el POS sigue igual (efectivo / tarjeta manual).
+  stripe:
+    enabled: ${STRIPE_ENABLED:false}
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    currency: ${STRIPE_CURRENCY:usd}
 
 logging:
   level:

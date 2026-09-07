@@ -13,4 +13,8 @@ function query(params = {}) {
 
 export const clienteService = {
   listar: (params = {}) => api.get(`/clientes${query(params)}`),
+  obtener: (id) => api.get(`/clientes/${id}`),
+  deudores: () => api.get('/clientes/deudores'),
+  actualizar: (id, dto) => api.put(`/clientes/${id}`, dto),
+  abonar: (id, monto) => api.post(`/clientes/${id}/abonos`, { monto }),
 };

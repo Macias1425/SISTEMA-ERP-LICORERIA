@@ -48,4 +48,14 @@ public class Cliente {
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
+
+    /** Tope de fiado permitido (0 = no puede comprar a crédito). */
+    @Column(name = "limite_credito", precision = 12, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal limiteCredito = java.math.BigDecimal.ZERO;
+
+    /** Saldo pendiente por ventas a crédito. */
+    @Column(name = "saldo_credito", precision = 12, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal saldoCredito = java.math.BigDecimal.ZERO;
 }

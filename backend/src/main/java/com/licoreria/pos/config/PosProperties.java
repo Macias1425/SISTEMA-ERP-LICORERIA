@@ -17,6 +17,7 @@ public class PosProperties {
     private Factura factura = new Factura();
     private Jwt jwt = new Jwt();
     private Respaldo respaldo = new Respaldo();
+    private Stripe stripe = new Stripe();
 
     @Getter
     @Setter
@@ -63,5 +64,17 @@ public class PosProperties {
         private long expirationMs = 28_800_000L;
         private int maxIntentosLogin = 5;
         private long bloqueoMinutos = 15;
+    }
+
+    @Getter
+    @Setter
+    public static class Stripe {
+        /** Si false o sin secret-key, el cobro Stripe no se ofrece y el POS no cambia. */
+        private boolean enabled = false;
+        private String secretKey = "";
+        private String publishableKey = "";
+        private String webhookSecret = "";
+        /** Moneda ISO para PaymentIntent (en test suele usarse usd). */
+        private String currency = "usd";
     }
 }

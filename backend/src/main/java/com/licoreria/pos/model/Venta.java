@@ -98,6 +98,10 @@ public class Venta {
     @Column(name = "monto_recibido", precision = 12, scale = 2)
     private BigDecimal montoRecibido;
 
+    /** Id del PaymentIntent de Stripe cuando formaPago = STRIPE. */
+    @Column(name = "stripe_payment_intent_id", length = 80)
+    private String stripePaymentIntentId;
+
     @Column(precision = 12, scale = 2)
     @Builder.Default
     private BigDecimal vuelto = BigDecimal.ZERO;

@@ -52,6 +52,7 @@ const accesos = [
   { to: '/compras', titulo: 'Compras', detalle: 'Órdenes y recepción', tono: 'orange', icono: 'proveedores', permisos: [PERMISOS.COMPRAS_GESTIONAR] },
   { to: '/facturas', titulo: 'Facturas', detalle: 'Historial de ventas', tono: 'blue', icono: 'facturas', permisos: [PERMISOS.FACTURAS_VER] },
   { to: '/reportes', titulo: 'Reportes', detalle: 'Cortes y resúmenes', tono: 'purple', icono: 'reportes', permisos: [PERMISOS.REPORTES_VER] },
+  { to: '/corte-dia', titulo: 'Corte del día', detalle: 'PDF y WhatsApp', tono: 'purple', icono: 'reportes', permisos: [PERMISOS.REPORTES_VER] },
   { to: '/finanzas', titulo: 'Finanzas', detalle: 'Margen y flujo', tono: 'teal', icono: 'finanzas', permisos: [PERMISOS.FINANZAS_VER] },
   { to: '/usuarios', titulo: 'Usuarios', detalle: 'Cuentas y roles', tono: 'blue', icono: 'usuarios', permisos: [PERMISOS.USUARIOS_VER, PERMISOS.USUARIOS_GESTIONAR] },
   { to: '/configuracion', titulo: 'Configuración', detalle: 'Parámetros del sistema', tono: 'purple', icono: 'config', permisos: [PERMISOS.CONFIG_GESTIONAR] },
@@ -62,6 +63,7 @@ const accesos = [
 const coloresPago = {
   EFECTIVO: '#2f8f5b',
   TARJETA: '#3b82f6',
+  STRIPE: '#635bff',
   TRANSFERENCIA: '#7c5cbf',
   MIXTO: '#0f766e',
   CREDITO: '#d97706',
@@ -70,6 +72,7 @@ const coloresPago = {
 const etiquetaPago = {
   EFECTIVO: 'Efectivo',
   TARJETA: 'Tarjeta',
+  STRIPE: 'Stripe',
   TRANSFERENCIA: 'Transferencia',
   MIXTO: 'Mixto',
   CREDITO: 'Crédito',

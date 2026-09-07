@@ -172,7 +172,8 @@ public class ReporteService {
                 .map(Factura::getTotal)
                 .toList());
         BigDecimal ventasEfectivo = sumarVentasPorForma(ventasFiltradas, FormaPago.EFECTIVO);
-        BigDecimal ventasTarjeta = sumarVentasPorForma(ventasFiltradas, FormaPago.TARJETA);
+        BigDecimal ventasTarjeta = sumarVentasPorForma(ventasFiltradas, FormaPago.TARJETA)
+                .add(sumarVentasPorForma(ventasFiltradas, FormaPago.STRIPE));
         BigDecimal ticketPromedio = ventasFiltradas.isEmpty()
                 ? BigDecimal.ZERO
                 : ventasTotal.divide(BigDecimal.valueOf(ventasFiltradas.size()), 2, REDONDEO);

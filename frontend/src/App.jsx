@@ -14,6 +14,7 @@ import DashboardPage from './app/dashboard/DashboardPage';
 import ReportesPage from './app/reportes/ReportesPage';
 
 import VencimientosPage from './app/reportes/VencimientosPage';
+import CorteDiaPage from './app/reportes/CorteDiaPage';
 
 import CategoriasPage from './app/catalogo/CategoriasPage';
 
@@ -41,7 +42,7 @@ import AuditoriaPage from './app/auditoria/AuditoriaPage';
 import MantenimientoPage from './app/mantenimiento/MantenimientoPage';
 
 import FinanzasPage from './app/finanzas/FinanzasPage';
-
+import CreditosPage from './app/creditos/CreditosPage';
 import MarcasPreciosPage from './app/marcas-precios/MarcasPreciosPage';
 
 import Layout from './components/ui/Layout';
@@ -85,6 +86,8 @@ export default function App() {
           <Route element={<RequirePermiso permisos={[PERMISOS.REPORTES_VER]} />}>
 
             <Route path="/reportes" element={<ReportesPage />} />
+
+            <Route path="/corte-dia" element={<CorteDiaPage />} />
 
             <Route path="/vencimientos" element={<VencimientosPage />} />
 
@@ -142,6 +145,10 @@ export default function App() {
 
             <Route path="/facturas" element={<FacturasPage />} />
 
+          </Route>
+
+          <Route element={<RequirePermiso permisos={[PERMISOS.FACTURAS_VER, PERMISOS.VENTAS_CREAR]} />}>
+            <Route path="/creditos" element={<CreditosPage />} />
           </Route>
 
           <Route element={<RequirePermiso permisos={[PERMISOS.USUARIOS_VER, PERMISOS.USUARIOS_GESTIONAR]} />}>

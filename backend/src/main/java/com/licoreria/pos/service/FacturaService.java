@@ -27,6 +27,7 @@ import com.licoreria.pos.model.EstadoFactura;
 import com.licoreria.pos.model.EstadoTurnoCaja;
 
 import com.licoreria.pos.model.EstadoVenta;
+import com.licoreria.pos.model.FormaPago;
 
 import com.licoreria.pos.model.Factura;
 
@@ -107,6 +108,8 @@ public class FacturaService {
     private final UsuarioRepository usuarioRepository;
 
     private final InventarioService inventarioService;
+
+    private final ClienteService clienteService;
 
     private final AutorizacionService autorizacionService;
 
@@ -330,6 +333,10 @@ public class FacturaService {
         }
 
 
+
+        if (venta.getFormaPago() == FormaPago.CREDITO && venta.getClienteId() != null) {
+            clienteService.liberarCredito(venta.getClienteId(), venta.getTotal());
+        }
 
         venta.setEstado(EstadoVenta.ANULADA);
 

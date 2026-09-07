@@ -66,6 +66,7 @@ public class VentaService {
     private final AutorizacionService autorizacionService;
     private final AccesoService accesoService;
     private final PosProperties posProperties;
+    private final StripePaymentService stripePaymentService;
     private final Clock clock;
 
     @Lazy
@@ -187,6 +188,19 @@ public class VentaService {
         BigDecimal impuesto = TarifaVenta.impuesto(subtotal, tasa);
         BigDecimal total = TarifaVenta.dinero(subtotal.add(impuesto));
 
+        if (formaPago == FormaPago.STRIPE) {
+            stripePaymentService.exigirPagoExitoso(request.getStripePaymentIntentId(), total);
+        }
+        if (formaPago == FormaPago.CREDITO) {
+            if (cliente == null) {
+                throw new ReglaNegocioException(
+                        "CREDITO_SIN_CLIENTE",
+                        "Para vender a crédito debe seleccionar un cliente registrado"
+                );
+            }
+            clienteService.cargarCredito(cliente.getId(), total);
+        }
+
         var reglasControl = controlVentasService.reglasOperativas();
         if (reglasControl.getMontoSupervisorRequerido() != null
                 && total.compareTo(reglasControl.getMontoSupervisorRequerido()) >= 0
@@ -222,6 +236,7 @@ public class VentaService {
                 .turnoCajaId(turno.getId())
                 .formaPago(formaPago)
                 .montoRecibido(montoRecibido)
+                .stripePaymentIntentId(formaPago == FormaPago.STRIPE ? request.getStripePaymentIntentId() : null)
                 .vuelto(vuelto)
                 .claveIdempotencia(claveIdempotencia)
                 .estado(EstadoVenta.COMPLETADA)
@@ -344,6 +359,7 @@ public class VentaService {
                 .turnoCajaId(venta.getTurnoCajaId())
                 .formaPago(venta.getFormaPago())
                 .montoRecibido(venta.getMontoRecibido())
+                .stripePaymentIntentId(venta.getStripePaymentIntentId())
                 .vuelto(venta.getVuelto())
                 .estado(venta.getEstado())
                 .factura(factura)

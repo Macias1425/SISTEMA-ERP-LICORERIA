@@ -24,6 +24,7 @@ import Pagination from '../../components/ui/Pagination';
 import { contenidoPagina, listarTodos, metaPagina, TAMANO_PAGINA_DEFAULT } from '../../utils/paginaUtil';
 import { verificacionEdadOk } from '../../utils/edadUtil';
 import { ventaService } from '../../services/ventaService';
+import { stripeService } from '../../services/stripeService';
 import { useCotizacion } from '../../hooks/useCotizacion';
 import { dinero } from '../../utils/formato';
 
@@ -92,7 +93,9 @@ export default function PosPage() {
   const [guardandoCierre, setGuardandoCierre] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [ticketDisplayId, setTicketDisplayId] = useState(() => String(Date.now()).slice(-6));
+  const [stripeConfig, setStripeConfig] = useState({ enabled: false, publishableKey: '', currency: 'usd' });
   const claveCobro = useRef(nuevaClaveCobro());
+  const pendingStripeIntent = useRef(null);
 
   async function cargarTurno() {
     try {
@@ -153,16 +156,22 @@ export default function PosPage() {
   }
 
   async function cargarCatalogo() {
-    const [listaClientes, listaCategorias, estado, config] = await Promise.all([
+    const [listaClientes, listaCategorias, estado, config, stripe] = await Promise.all([
       listarTodos((p) => clienteService.listar({ activo: true, ...p })),
       listarTodos((p) => categoriaService.listar({ activo: true, ...p })).catch(() => []),
       normativaService.estado(),
       configuracionService.negocio().catch(() => null),
+      stripeService.config().catch(() => ({ enabled: false })),
     ]);
     const clientesCargados = Array.isArray(listaClientes) ? listaClientes : contenidoPagina(listaClientes);
     setClientes(clientesCargados.filter((cliente) => cliente.activo !== false));
     setCategorias(Array.isArray(listaCategorias) ? listaCategorias : contenidoPagina(listaCategorias));
     setNormativa(estado);
+    setStripeConfig({
+      enabled: Boolean(stripe?.enabled),
+      publishableKey: stripe?.publishableKey || '',
+      currency: stripe?.currency || 'usd',
+    });
     if (config) {
       setNegocio(config);
       if (config.nombreNegocio) {
@@ -260,6 +269,15 @@ export default function PosPage() {
     : Math.round((Number(montoFisico) - Number(turno?.montoEsperado || 0)) * 100) / 100;
   const claseDiferencia = diferenciaArqueo === 0 ? 'ok' : diferenciaArqueo > 0 ? 'warn' : 'danger';
   const edadMinima = normativa?.edadMinimaAlcohol || 18;
+  const clienteSeleccionado = useMemo(
+    () => clientes.find((c) => String(c.id) === String(clienteId)) || null,
+    [clientes, clienteId]
+  );
+  const clienteCreditoOk = Boolean(
+    clienteSeleccionado
+    && Number(clienteSeleccionado.limiteCredito || 0) > 0
+    && Number(clienteSeleccionado.limiteCredito || 0) - Number(clienteSeleccionado.saldoCredito || 0) > 0
+  );
   const verificacionEdad = useMemo(
     () => verificacionEdadOk(hayAlcohol, confirmaEdad, fechaNacimiento, edadMinima),
     [hayAlcohol, confirmaEdad, fechaNacimiento, edadMinima]
@@ -347,6 +365,7 @@ export default function PosPage() {
     setTicket(null);
     setTicketDisplayId(String(Date.now()).slice(-6));
     claveCobro.current = nuevaClaveCobro();
+    pendingStripeIntent.current = null;
   }
 
   function montoExacto() {
@@ -362,7 +381,18 @@ export default function PosPage() {
 
   function onPagoChange(event) {
     const { name, value, type, checked } = event.target;
-    if (name === 'clienteId') setClienteId(value);
+    if (name === 'clienteId') {
+      setClienteId(value);
+      const siguiente = clientes.find((c) => String(c.id) === String(value));
+      const creditoOk = Boolean(
+        siguiente
+        && Number(siguiente.limiteCredito || 0) > 0
+        && Number(siguiente.limiteCredito || 0) - Number(siguiente.saldoCredito || 0) > 0
+      );
+      if (formaPago === 'CREDITO' && !creditoOk) {
+        setFormaPago('EFECTIVO');
+      }
+    }
     if (name === 'tipoCliente') setTipoCliente(value);
     if (name === 'formaPago') {
       setFormaPago(value);
@@ -393,6 +423,9 @@ export default function PosPage() {
     if (valor !== 'EFECTIVO') {
       setMontoRecibido('');
     }
+    if (valor !== 'STRIPE') {
+      pendingStripeIntent.current = null;
+    }
   }
 
   async function abrirCaja(event) {
@@ -412,7 +445,7 @@ export default function PosPage() {
     }
   }
 
-  async function registrarVenta(autorizacionSupervisor) {
+  async function registrarVenta(autorizacionSupervisor, stripePaymentIntentId) {
     return ventaService.registrar({
       clienteId: clienteId === '' ? null : Number(clienteId),
       tipoCliente,
@@ -420,6 +453,7 @@ export default function PosPage() {
       confirmacionMayoriaEdad: hayAlcohol ? confirmaEdad : false,
       formaPago,
       montoRecibido: formaPago === 'EFECTIVO' ? Number(montoRecibido) : null,
+      stripePaymentIntentId: formaPago === 'STRIPE' ? (stripePaymentIntentId || pendingStripeIntent.current) : null,
       claveIdempotencia: claveCobro.current,
       autorizacionSupervisor: autorizacionSupervisor || undefined,
       detalles: lineas.map((linea) => ({
@@ -430,7 +464,7 @@ export default function PosPage() {
     });
   }
 
-  async function cobrar(autorizacionSupervisor) {
+  async function cobrar(autorizacionSupervisor, stripePaymentIntentId) {
     if (!lineas.length) {
       setError('Agregue al menos un producto');
       return;
@@ -446,11 +480,28 @@ export default function PosPage() {
       setError(`El efectivo recibido no cubre el total (${dinero(totalTicket)})`);
       return;
     }
+    if (formaPago === 'STRIPE' && !(stripePaymentIntentId || pendingStripeIntent.current)) {
+      setError('Complete el pago con Stripe antes de registrar la venta.');
+      return;
+    }
+    if (formaPago === 'CREDITO') {
+      if (!clienteId) {
+        setError('Seleccione un cliente con crédito para fiado.');
+        return;
+      }
+      if (!clienteCreditoOk) {
+        setError('El cliente no tiene crédito disponible.');
+        return;
+      }
+    }
     if (limiteVentasAlcanzado) {
       setError(`Límite de ventas del turno alcanzado (${maxVentasTurno}). Cierre caja o contacte al administrador.`);
       return;
     }
     if (exigeSupervisorMonto && !autorizacionSupervisor) {
+      if (stripePaymentIntentId) {
+        pendingStripeIntent.current = stripePaymentIntentId;
+      }
       setMensajeSupervisor(
         `Esta venta (${dinero(totalTicket)}) alcanza o supera el umbral de ${dinero(montoSupervisor)}. Se requiere autorización de administrador.`
       );
@@ -460,8 +511,9 @@ export default function PosPage() {
     setGuardando(true);
     setError('');
     try {
-      const venta = await registrarVenta(autorizacionSupervisor);
+      const venta = await registrarVenta(autorizacionSupervisor, stripePaymentIntentId);
       setModalSupervisor(false);
+      pendingStripeIntent.current = null;
       let ventaConFactura = venta;
       if (venta.id && !venta.factura?.lineas?.length) {
         try {
@@ -476,6 +528,7 @@ export default function PosPage() {
       setConfirmaEdad(false);
       setFechaNacimiento('');
       setMontoRecibido('');
+      setFormaPago('EFECTIVO');
       claveCobro.current = nuevaClaveCobro();
       setTicketDisplayId(String(Date.now()).slice(-6));
       const actualizado = await cargarTurno();
@@ -684,9 +737,14 @@ export default function PosPage() {
           exigeSupervisor={exigeSupervisorMonto}
           limiteVentasAlcanzado={limiteVentasAlcanzado}
           cobrando={guardando}
+          stripeEnabled={stripeConfig.enabled}
+          stripePublishableKey={stripeConfig.publishableKey}
+          stripeCurrency={stripeConfig.currency}
+          clienteCreditoOk={clienteCreditoOk}
           onChange={onPagoChange}
           onFormaPago={cambiarFormaPago}
           onCobrar={() => cobrar()}
+          onStripePaid={(intentId) => cobrar(undefined, intentId)}
           onCancelar={cancelarVenta}
           onMontoExacto={montoExacto}
           onAgregarEfectivo={agregarEfectivo}

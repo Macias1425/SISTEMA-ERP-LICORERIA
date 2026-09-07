@@ -139,7 +139,14 @@ export default function FinanzasPage() {
       subtitulo: 'Ingresos menos costo de mercancía. No incluye gastos de operación.',
       desde,
       hasta,
-      filtros: formaPago ? `Forma de pago: ${formaPago === 'EFECTIVO' ? 'Efectivo' : 'Tarjeta'}` : 'Todas las formas de pago',
+      filtros: formaPago
+        ? `Forma de pago: ${
+          formaPago === 'EFECTIVO' ? 'Efectivo'
+            : formaPago === 'STRIPE' ? 'Stripe'
+              : formaPago === 'CREDITO' ? 'Crédito'
+                : 'Tarjeta'
+        }`
+        : 'Todas las formas de pago',
     });
   }
 
@@ -184,6 +191,8 @@ export default function FinanzasPage() {
             <option value="">Pago: todos</option>
             <option value="EFECTIVO">Efectivo</option>
             <option value="TARJETA">Tarjeta</option>
+            <option value="STRIPE">Stripe</option>
+            <option value="CREDITO">Crédito</option>
           </CatalogFilterSelect>
           <Button type="submit" disabled={cargando}>Consultar</Button>
         </form>

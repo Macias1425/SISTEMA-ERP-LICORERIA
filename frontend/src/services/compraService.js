@@ -14,6 +14,7 @@ function query(params = {}) {
 export const compraService = {
   listar: (params = {}) => api.get(`/compras${query(params)}`),
   obtener: (id) => api.get(`/compras/${id}`),
+  sugerencias: (params = {}) => api.get(`/compras/sugerencias${query(params)}`),
   crearOrden: (compra) => api.post('/compras/orden', compra),
   recibir: (compra) => api.post('/compras', compra),
   recibirOrden: (id, payload) => api.post(`/compras/${id}/recibir`, payload || {}),

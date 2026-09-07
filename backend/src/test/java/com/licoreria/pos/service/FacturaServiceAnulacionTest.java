@@ -65,6 +65,8 @@ class FacturaServiceAnulacionTest {
     @Mock
     private InventarioService inventarioService;
     @Mock
+    private ClienteService clienteService;
+    @Mock
     private AutorizacionService autorizacionService;
     @Mock
     private AccesoService accesoService;
@@ -84,7 +86,7 @@ class FacturaServiceAnulacionTest {
         PosProperties props = new PosProperties();
         facturaService = new FacturaService(
                 facturaRepository, ventaRepository, clienteRepository, productoRepository,
-                turnoCajaRepository, usuarioRepository, inventarioService,
+                turnoCajaRepository, usuarioRepository, inventarioService, clienteService,
                 autorizacionService, accesoService, numeracionFiscalService, auditoriaService, props, clock
         );
     }
