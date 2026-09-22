@@ -11,11 +11,13 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StripePaymentService {
@@ -69,6 +71,7 @@ public class StripePaymentService {
                     .amount(amount)
                     .build();
         } catch (StripeException e) {
+            log.error("Error al crear PaymentIntent en Stripe (monto: {}, moneda: {})", amount, currency, e);
             throw new ReglaNegocioException("STRIPE_ERROR", "No se pudo iniciar el cobro Stripe: " + e.getMessage());
         }
     }
@@ -85,6 +88,7 @@ public class StripePaymentService {
         try {
             PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId.trim());
             if (!"succeeded".equalsIgnoreCase(intent.getStatus())) {
+                log.warn("El PaymentIntent {} tiene estado no completado: {}", paymentIntentId, intent.getStatus());
                 throw new ReglaNegocioException(
                         "STRIPE_NO_CONFIRMADO",
                         "El pago Stripe no está confirmado (estado: " + intent.getStatus() + ")"
@@ -99,9 +103,12 @@ public class StripePaymentService {
             }
             String currency = moneda();
             if (intent.getCurrency() != null && !currency.equalsIgnoreCase(intent.getCurrency())) {
+                log.warn("Moneda de Stripe ({}) no coincide con el sistema ({})", intent.getCurrency(), currency);
                 throw new ReglaNegocioException("STRIPE_MONEDA", "La moneda del pago Stripe no coincide con la configurada");
             }
+            log.info("Pago verificado exitosamente en Stripe: {}", paymentIntentId);
         } catch (StripeException e) {
+            log.error("Error recuperando PaymentIntent {} desde Stripe", paymentIntentId, e);
             throw new ReglaNegocioException("STRIPE_ERROR", "No se pudo verificar el pago Stripe: " + e.getMessage());
         }
     }
