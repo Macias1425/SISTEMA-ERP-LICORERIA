@@ -28,8 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class VentaController {
 
-    private final VentaService ventaService;
-    private final CotizacionVentaService cotizacionVentaService;
+    private final VentaService ventaService; 
+    private final CotizacionVentaService cotizacionVentaService; 
 
     /** Precio y totales calculados por el servidor antes de cobrar: evita descuadres en pantalla. */
     @PostMapping("/cotizar")
