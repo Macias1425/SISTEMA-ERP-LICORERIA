@@ -161,7 +161,10 @@ export default function PosPage() {
       listarTodos((p) => categoriaService.listar({ activo: true, ...p })).catch(() => []),
       normativaService.estado(),
       configuracionService.negocio().catch(() => null),
-      stripeService.config().catch(() => ({ enabled: false })),
+      stripeService.config().catch((err) => {
+        console.error("ERROR CRITICO STRIPE:", err);
+        return { enabled: false };
+      }),
     ]);
     const clientesCargados = Array.isArray(listaClientes) ? listaClientes : contenidoPagina(listaClientes);
     setClientes(clientesCargados.filter((cliente) => cliente.activo !== false));
