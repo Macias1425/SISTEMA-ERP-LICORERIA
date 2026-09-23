@@ -29,12 +29,14 @@ function coincide(producto, termino) {
   return texto.includes(termino.toLowerCase());
 }
 
+const ARRAY_VACIO = [];
+
 /**
  * Campo único de escaneo y búsqueda del POS. Mantiene el foco donde el cajero lo necesita
  * (F2 o cualquier tecla cuando no está escribiendo en otro campo) y confirma cada lectura.
  * La búsqueda la hace el backend (`onBuscar`) para no cargar el catálogo completo.
  */
-export default function EscanerBusqueda({ onBuscar, productos = [], onAgregar, capturaGlobal = true }) {
+export default function EscanerBusqueda({ onBuscar, productos = ARRAY_VACIO, onAgregar, capturaGlobal = true }) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
   const [ultimo, setUltimo] = useState(null);
